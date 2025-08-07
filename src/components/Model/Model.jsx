@@ -9,6 +9,10 @@ import { Link } from 'react-router-dom';
 import { ConfigProvider, Pagination } from 'antd';
 import Topnav from '../TopNav/Topnav';
 import Header from '../Header';
+import Singer from '../Singer/Singer';
+import Dancer from '../Dancer/Dancer';
+import Musician from '../Musician/Musician';
+
 const API_URL = process.env.REACT_APP_API_URL;
 const Token = localStorage.getItem("JwtToken");
 
@@ -20,9 +24,9 @@ const Model = () => {
   const [current, setCurrent] = useState(1);
   const [current1, setCurrent1] = useState(1);
   const [current2, setCurrent2] = useState(1);
-  const [pageSize] = useState(6);
-  const [pageSize1] = useState(6);
-  const [pageSize2] = useState(12);
+  const [pageSize] = useState(10);
+  const [pageSize1] = useState(10);
+  const [pageSize2] = useState(10);
   const [maleModel, setMaleModel] = useState([]);
   const [femaleModel, setFemaleModel] = useState([]);
   const [childArtist, setChildArtist] = useState([]);
@@ -48,10 +52,12 @@ const option1 = {
   const getMaleModel = async () => {
     try {
       const [modelsRes, agentModelsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/models?filters[Category][$eq]=Male&filters[Payment][$eq]=Paid&sort[0]=id:desc&populate=*`),
-        axios.get(`${API_URL}/api/agent-models?filters[Category][$eq]=Male&filters[Payment][$eq]=Paid&sort[0]=id:desc&populate=*`)
+        axios.get(`${API_URL}/api/models?filters[Category][$eq]=Male&filters[Payment][$eq]=Paid&populate=*&pagination[pageSize]=100`),
+        axios.get(`${API_URL}/api/agent-models?filters[Category][$eq]=Male&filters[Payment][$eq]=Paid&populate=*&pagination[pageSize]=100`)
       ]);
-  
+    
+    console.log('Regular models count:', modelsRes.data.data.length);
+    console.log('Agent models count:', agentModelsRes.data.data.length);
       const modelsData = modelsRes.data.data.map(item => ({
         ...item,
         type: "model"
@@ -73,8 +79,8 @@ const option1 = {
   const getFemaleModel = async () => {
     try {
       const [femaleModelsRes, agentFemaleModelsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/models?filters[Category][$eq]=Female&filters[Payment][$eq]=Paid&sort[0]=id:desc&populate=*`),
-        axios.get(`${API_URL}/api/agent-models?filters[Category][$eq]=Female&filters[Payment][$eq]=Paid&sort[0]=id:desc&populate=*`)
+        axios.get(`${API_URL}/api/models?filters[Category][$eq]=Female&filters[Payment][$eq]=Paid&populate=*&pagination[pageSize]=100`),
+        axios.get(`${API_URL}/api/agent-models?filters[Category][$eq]=Female&filters[Payment][$eq]=Paid&populate=*&pagination[pageSize]=100`)
       ]);
   
       const femaleModelsData = femaleModelsRes.data.data.map(item => ({
@@ -98,8 +104,8 @@ const option1 = {
   const getChildArtist = async () => {
     try {
       const [childModelsRes, agentChildModelsRes] = await Promise.all([
-        axios.get(`${API_URL}/api/models?filters[Category][$eq]=ChildArtist&filters[Payment][$eq]=Paid&sort[0]=id:desc&populate=*`),
-        axios.get(`${API_URL}/api/agent-models?filters[Category][$eq]=ChildArtist&filters[Payment][$eq]=Paid&sort[0]=id:desc&populate=*`)
+        axios.get(`${API_URL}/api/models?filters[Category][$eq]=ChildArtist&filters[Payment][$eq]=Paid&populate=*&pagination[pageSize]=100`),
+        axios.get(`${API_URL}/api/agent-models?filters[Category][$eq]=ChildArtist&filters[Payment][$eq]=Paid&populate=*&pagination[pageSize]=100`)
       ]);
   
       const childModelsData = childModelsRes.data.data.map(item => ({
@@ -184,7 +190,7 @@ const option1 = {
             marginRight: "10px",
           }}
         >
-           Male Model 
+           Male Artist 
         </p>
         <SearchInput
           type="text"
@@ -253,7 +259,7 @@ const option1 = {
             marginRight: "10px",
           }}
         >
-           Female Model
+           Female Artist
         </p>
         <SearchInput
           type="text"
@@ -333,7 +339,7 @@ const option1 = {
         />
       </Toolbar>
 
-     <Content1>
+      <Content1>
       {currentPageMovies2 && currentPageMovies2.map((model) => (
           <div key={model?.id}>
             <Link
@@ -385,6 +391,10 @@ const option1 = {
 
     {/* Model content ends */}
   </Container>
+
+  <Singer/>
+  <Dancer/>
+  <Musician/>
     <Footer />
    </>
   )
@@ -456,7 +466,7 @@ img{
   }
 }
   @media (max-width: 768px) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     width: 100%;
     grid-gap: 10px;
     height: 100%;

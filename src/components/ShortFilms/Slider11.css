@@ -1,0 +1,93 @@
+.mySwiper {
+    width: 100%;
+    height: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  
+  .mySwiper .swiper-slide1 {
+  text-align: center;
+  border-radius: 10px;
+  font-size: 18px;
+  background: #fff;
+  height: calc((100% - 30px) / 2) !important;
+
+  /* Center slide text vertically */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+    border: 3px solid rgba(249, 249, 249, 0.1);
+    box-shadow: rgb(0 0 0 / 69%) 0px 26px 30px -10px,
+      rgb(0 0 0 / 73%) 0px 16px 10px -10px;
+    transition: all 250ms cubic-bezier(0.25, 0.46, 0.45, 0.94) 0s;
+    
+  }
+  
+  .mySwiper .swiper-slide1 img {
+    display: block;
+    /* border-radius: 10px; */
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* .mySwiper.swiper-slide :hover{
+    cursor: pointer;
+    transform: scale(1.05);
+    box-shadow: rgb(0 0 0 / 69%) 0px 26px 30px -10px,rgb(0 0 0 / 73%) 0px 16px 10px -10px;
+    border-color: rgba(249, 249, 249, 0.8);
+    border-radius: 10px;
+  } */
+
+  .movie-container1 {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.overlay1 {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(60deg, #ff0015, #c71b29);
+    overflow: hidden;
+    width: 100%;
+    height: 0;
+    transition: .5s ease;
+}
+
+.swiper-slide1 .overlay1 {
+    height: auto;
+    width: 100%;
+}
+
+.movie-name1 {
+    color:#ffffff;
+    /* font-weight: bold; */
+    font-size: 16px;
+    text-align: center;
+    padding: 8px;
+    margin: 0;
+    text-transform: uppercase;
+    width: 100%;
+}
+
+
+.swiper-button-next:after{
+    color: #ff0015;
+    font-weight: bold;
+  }
+  .swiper-button-prev:after{
+    color: #ff0015;
+    font-weight: bold;
+  }
+
+  @media screen and (max-width: 512px) {
+    .swiper-button-next:after{
+      font-size: large;
+    }
+    .swiper-button-prev:after{
+      font-size: large;
+    }
+  }

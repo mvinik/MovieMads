@@ -1,4 +1,4 @@
-import React,{useState,useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
@@ -17,36 +17,36 @@ const Token = localStorage.getItem("JwtToken");
 const API_URL = process.env.REACT_APP_API_URL;
 const UpcomingMovies = () => {
   const [seoData, setSeoData] = useState(null);
-    const [movies, setMovies] = useState([]);
-    const navigate = useNavigate();
-    
-    
-const option1 = {
-  headers: {
-  'Authorization':`Bearer ${Token}`
-  },
+  const [movies, setMovies] = useState([]);
+  const navigate = useNavigate();
+
+
+  const option1 = {
+    headers: {
+      'Authorization': `Bearer ${Token}`
+    },
   };
 
-    const getMovies = async() => {
-      try{
-        const res = await axios.get(`${API_URL}/api/movies?populate=*&sort[0]=id:desc`);
-        setMovies(res.data.data);
-        setSeoData()
-      }catch(err){
-        console.error(err);
-      }
+  const getMovies = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/movies?populate=*&sort[0]=id:desc`);
+      setMovies(res.data.data);
+      setSeoData()
+    } catch (err) {
+      console.error(err);
     }
-    useEffect(() => {
-      getMovies();
-    },[]);
-      return (
-          <Container>
-              <div style={{display:'flex', justifyContent:"space-between"}}>
-              <h1 onClick={() => { navigate("/movieTrailer"); }}>LATEST MOVIE TRAILERS<span>&#8702;</span></h1>
-              {/* <h3 >View More</h3> */}
-              </div>
-              <Swiper
-        modules={[ Navigation, Pagination,Grid]}
+  }
+  useEffect(() => {
+    getMovies();
+  }, []);
+  return (
+    <Container>
+      <div style={{ display: 'flex', justifyContent: "space-between" }}>
+        <h1 onClick={() => { navigate("/movieTrailer"); }}>LATEST MOVIE TRAILERS<span>&#8702;</span></h1>
+        {/* <h3 >View More</h3> */}
+      </div>
+      <Swiper
+        modules={[Navigation, Pagination, Grid]}
         slidesPerView={2}
         centeredSlides={false}
         spaceBetween={20}
@@ -59,22 +59,22 @@ const option1 = {
         }}
         className="mySwiper"
       >
-                {movies.map((movie) => (
-                        <SwiperSlide  key={movie.id}>
-                            <Link to={'/details/'+movie.id} onClick={() => window.scrollTo(0, 0)} className="movie-link" >
-                            <div className="movie-container">
-                                <img src={`${API_URL}${movie.attributes.MoviePoster.data.attributes.url}`} alt="Img" id={movie.id}/>
-                            <div className="overlay">
-                                <p className="movie-name">{movie.attributes.MovieName}</p>
-                            </div>
-                            </div>
-                            </Link>
-                        </SwiperSlide>
-                    ))
-                }
-                 </Swiper>
-          </Container>
-      )
+        {movies.map((movie) => (
+          <SwiperSlide key={movie.id}>
+            <Link to={'/details/' + movie.id} onClick={() => window.scrollTo(0, 0)} className="movie-link" >
+              <div className="movie-container">
+                <img src={`${API_URL}${movie.attributes.MoviePoster.data.attributes.url}`} alt="Img" id={movie.id} />
+                <div className="overlay">
+                  <p className="movie-name">{movie.attributes.MovieName}</p>
+                </div>
+              </div>
+            </Link>
+          </SwiperSlide>
+        ))
+        }
+      </Swiper>
+    </Container>
+  )
 }
 
 export default UpcomingMovies

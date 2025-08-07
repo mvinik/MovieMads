@@ -66,8 +66,8 @@ const VideoModal = ({ showModal, handleClose }) => {
           background: 'transparent',
           overflow: 'visible',
           zIndex: 1000,
-          maxWidth:'600px',
-          width:"90%"
+          maxWidth: '600px',
+          width: "90%"
         },
         overlay: {
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
@@ -90,7 +90,7 @@ const VideoModal = ({ showModal, handleClose }) => {
           </ul>
           {/* <p className="shine">This is <em>YOUR</em> time to shine.</p> */}
           <p className="note">⏳ <strong>Limited seats. Unlimited dreams.</strong></p>
-          <ActionButton  onClick={() => navigate('/model')}>
+          <ActionButton onClick={() => navigate('/model')}>
             Login now & grab your spotlight!
           </ActionButton>
         </ContentBox>

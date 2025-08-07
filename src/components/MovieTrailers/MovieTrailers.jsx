@@ -1,4 +1,4 @@
-import React,{useState,useEffect} from 'react'
+import React, { useState, useEffect } from 'react'
 import MovieSlider from './MovieSlider'
 import styled from 'styled-components'
 import './MovieTrailers.css'
@@ -23,17 +23,17 @@ const MovieTrailers = () => {
 
 
   const [movies, setMovies] = useState([]);
-  const getMovies = async() => {
-    try{
+  const getMovies = async () => {
+    try {
       const res = await axios.get(`${API_URL}/api/movies?populate=*&sort[0]=id:desc`);
       setMovies(res.data.data);
-    }catch(err){
+    } catch (err) {
       console.error(err);
     }
   }
-    useEffect(() => {
-      getMovies();
-    },[]);
+  useEffect(() => {
+    getMovies();
+  }, []);
 
 
   // Function to filter movies based on search query, language, and genre
@@ -65,77 +65,77 @@ const MovieTrailers = () => {
 
   return (
     <>
-    <Topnav/>
-    <Header/>
-    <Container>
-      <MovieSlider />
-      <Toolbar>
-        <p
-          style={{
-            fontWeight: "bold",
-            textTransform: "uppercase",
-            marginRight: "10px",
-          }}
-        >
-          Movie Trailers
-        </p>
-        <SearchInput
-          type="text"
-          placeholder="Search..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </Toolbar>
+      <Topnav />
+      <Header />
+      <Container>
+        <MovieSlider />
+        <Toolbar>
+          <p
+            style={{
+              fontWeight: "bold",
+              textTransform: "uppercase",
+              marginRight: "10px",
+            }}
+          >
+            Movie Trailers
+          </p>
+          <SearchInput
+            type="text"
+            placeholder="Search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </Toolbar>
 
-      <Content>
-        {currentPageMovies.map((movie) => (
-          <div key={movie.id}>
-            <Link
-              to={"/details/" + movie.id}
-              onClick={() => window.scrollTo(0, 0)}
-            >
-              <div className="movieTrailers-container">
-              <img src={`${API_URL}${movie.attributes.MoviePoster.data.attributes.url}`} alt="Img" id={movie.id}/>
-                <div className="Movietrailers-overlay">
-                  <p className="movieTrailers-title">{movie.attributes.MovieName}</p>
+        <Content>
+          {currentPageMovies.map((movie) => (
+            <div key={movie.id}>
+              <Link
+                to={"/details/" + movie.id}
+                onClick={() => window.scrollTo(0, 0)}
+              >
+                <div className="movieTrailers-container">
+                  <img src={`${API_URL}${movie.attributes.MoviePoster.data.attributes.url}`} alt="Img" id={movie.id} />
+                  <div className="Movietrailers-overlay">
+                    <p className="movieTrailers-title">{movie.attributes.MovieName}</p>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          </div>
-        ))}
-      </Content>
-      <PaginationWrapper>
-      <ConfigProvider
-        theme={{
-          token: {
-            colorPrimary: "#e50914",
-            colorText: "#ffffff",
-            colorIcon: "#e50914",
-          },
-          components: {
-            Pagination: {
-              colorPrimary: "#e50914",
-              itemSize: "42px",
-              fontSize: "22px",
-              borderRadius: "20px",
-              colorBgTextHover: "#e50914",
-            },
-          },
-        }}
-      >
-        <Pagination
-          className="pagination"
-          size="large"
-          current={current}
-          onChange={onChange}
-          total={filteredMovies.length}
-          showSizeChanger={false}
-          pageSize={pageSize}
-        />
-      </ConfigProvider>
-      </PaginationWrapper>
-    </Container>
-      <Footer/>
+              </Link>
+            </div>
+          ))}
+        </Content>
+        <PaginationWrapper>
+          <ConfigProvider
+            theme={{
+              token: {
+                colorPrimary: "#e50914",
+                colorText: "#ffffff",
+                colorIcon: "#e50914",
+              },
+              components: {
+                Pagination: {
+                  colorPrimary: "#e50914",
+                  itemSize: "42px",
+                  fontSize: "22px",
+                  borderRadius: "20px",
+                  colorBgTextHover: "#e50914",
+                },
+              },
+            }}
+          >
+            <Pagination
+              className="pagination"
+              size="large"
+              current={current}
+              onChange={onChange}
+              total={filteredMovies.length}
+              showSizeChanger={false}
+              pageSize={pageSize}
+            />
+          </ConfigProvider>
+        </PaginationWrapper>
+      </Container>
+      <Footer />
     </>
   );
 }

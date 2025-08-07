@@ -7,6 +7,7 @@ import styled from 'styled-components'
 import Header from '../Header'
 import Footer from '../Footer/Footer'
 import Topnav from '../TopNav/Topnav'
+import { message } from 'antd';
 import './Model.css'
 import { PlusOutlined } from '@ant-design/icons'
 
@@ -14,10 +15,11 @@ import { PlusOutlined } from '@ant-design/icons'
 const EditModel = () => {
   const { id } = useParams();
   const API_URL = process.env.REACT_APP_API_URL;
-    const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [user, setUser] = useState(null);
   const [images, setImages] = useState([]);
   const [imageId, setImageId] = useState("");
+  const [videoId, setVideoId] = useState("");
   const [posterId, setPosterId] = useState("");
   const [thumbnailId, setThumbnailId] = useState("");
   const [details, setDetails] = useState(null);
@@ -28,9 +30,11 @@ const EditModel = () => {
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
   const [poster, setPoster] = useState(null);
+  const [videoFile, setVideoFile] = useState(null)
   const [multipleImage, setMultipleImage] = useState(null);
   const [thumbnail, setThumbnail] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  
   const fileInputRef = React.useRef(null);
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -51,7 +55,7 @@ const EditModel = () => {
         setHeight(value);
         break;
       case "weight":
-        setWeight (value);
+        setWeight(value);
         break;
       default:
         break;
@@ -72,24 +76,27 @@ const EditModel = () => {
       setHeight(responseData?.attributes.Height);
       setWeight(responseData?.attributes?.Weight);
       setPosterId(responseData?.attributes?.Poster?.data?.id);
-      
+      // setVideoId(responseData?.attributes?.VideoFile?.data?.id)
+      // Set the first video as the primary one (or implement your own logic)
+    const firstVideo = responseData?.attributes?.VideoFile?.data?.[0];
+    setVideoId(firstVideo?.id);
       setThumbnailId(responseData?.attributes?.Thumbnail?.data?.id);
-      // console.log(responseData,'Edit response');
+      console.log(responseData, 'Edit response');
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleFieldChange = async() =>{
+  const handleFieldChange = async () => {
     try {
-      const res = await axios.put(`${API_URL}/api/Models/${id}`,{
-        data:{
-            Name: fullName,
-            HairColor:hairColor,
-            EyeColor:eyeColor,
-            Description:description,
-            Height:height,
-            Weight:weight,
+      const res = await axios.put(`${API_URL}/api/Models/${id}`, {
+        data: {
+          Name: fullName,
+          HairColor: hairColor,
+          EyeColor: eyeColor,
+          Description: description,
+          Height: height,
+          Weight: weight,
         }
       });
       // console.log(res.data,'edited response')
@@ -98,12 +105,12 @@ const EditModel = () => {
     } catch (error) {
       console.error(error);
     }
-  } 
+  }
 
   const handleFileChange = (e, index) => {
-    const { name, files } = e.target;
-    // console.log(`File selected for ${name}:`, files[0]);
-  
+    const { name, files, videofile } = e.target;
+    //console.log(`File selected for ${name}:`, files[0]);
+
     switch (name) {
       case "poster":
         // console.log("Setting poster:", files[0]);
@@ -113,10 +120,16 @@ const EditModel = () => {
         // console.log("Setting thumbnail:", files[0]);
         setThumbnail(files[0]);
         break;
+      case "VideoFile":
+        // console.log("Setting thumbnail:", files[0]);
+
+        setVideoFile(files[0]);
+        break;
       case "images":
         setImages(prevImages => {
           const newImages = [...prevImages];
           newImages[index] = files[0];
+
           // console.log("Setting images:", newImages);
           return newImages;
         });
@@ -125,7 +138,7 @@ const EditModel = () => {
         break;
     }
   };
-  
+
 
 
   const handlePosterUpload = async (img) => {
@@ -179,6 +192,81 @@ const EditModel = () => {
     }
   };
 
+
+  // const handleVideoFileUpload = async (video) => {
+  //   try {
+  //     const formData = new FormData();
+  //     formData.append('videofiles', video);
+  //     const newFileData = {
+  //       alternativeText: " ",
+  //       name: " ",
+  //       caption: 'VideoFile',
+  //     };
+  //     formData.append('fileInfo', JSON.stringify(newFileData));
+  //     formData.append('refId', localStorage.getItem('ModelId'));
+  //     formData.append('ref', 'api::model.model');
+
+  //     const res = await axios.post(`${API_URL}/api/upload?id=${videoId}`, formData, {
+  //       headers: {
+  //         'Content-Type': 'multipart/form-data',
+  //         'accept': 'application/json'
+  //       }
+  //     });
+  //     fetchData(); // Refresh data after upload
+  //     window.location.reload();
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // };
+
+const handleVideoFileUpload = async (video) => {
+  if (!video) {
+    console.error('No video file selected');
+      message.error('Video file too large (max 50MB)');
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('files', video);
+    
+    const newFileData = {
+      alternativeText: details?.attributes?.Name || "Model Video",
+      caption: 'Model Video File',
+    };
+    formData.append('fileInfo', JSON.stringify(newFileData));
+
+    let response;
+    
+    // If updating existing video
+    if (videoId) {
+      response = await axios.post(`${API_URL}/api/upload?id=${videoId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    } 
+    // If adding new video
+    else {
+      formData.append('refId', id);
+      formData.append('ref', 'api::model.model');
+      formData.append('field', 'VideoFile');
+      
+      response = await axios.post(`${API_URL}/api/upload`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+    }
+  message.success('Video uploaded successfully!');
+    
+    // Force a cache-busting reload
+    const timestamp = new Date().getTime();
+    window.location.href = `${window.location.pathname}?t=${timestamp}`;
+     
+  } catch (error) {
+    console.error('Video upload error:', error);
+    // alert('Error uploading video. Please try again.');
+      message.error('Failed to upload video');
+  }
+};
+
   const handleImagesUpload = async (img) => {
     try {
       const formData = new FormData();
@@ -189,7 +277,7 @@ const EditModel = () => {
         caption: 'Images',
       };
       formData.append('fileInfo', JSON.stringify(newFileData));
-  
+
       if (imageId) {
         // Replace existing image
         // console.log('OLD Image Check')
@@ -212,7 +300,7 @@ const EditModel = () => {
           caption: 'Images',
         };
         newImageData.append('fileInfo', JSON.stringify(newFileData));
-        newImageData.append('refId',localStorage.getItem('ModelId'));
+        newImageData.append('refId', localStorage.getItem('ModelId'));
         newImageData.append('ref', 'api::model.model');
         // Upload new image
         const res = await axios.post(`${API_URL}/api/upload`, newImageData, {
@@ -228,7 +316,7 @@ const EditModel = () => {
       console.error(error);
     }
   };
-  
+
 
 
   useEffect(() => {
@@ -247,19 +335,36 @@ const EditModel = () => {
     setIsModalOpen(!isModalOpen);
   };
 
+  const deleteOldVideos = async () => {
+  try {
+    const videos = details.attributes.VideoFile.data;
+    
+    // Delete all except the first video
+    for (let i = 1; i < videos.length; i++) {
+      await axios.delete(`${API_URL}/api/upload/files/${videos[i].id}`, {
+        headers: { Authorization: `Bearer ${localStorage.getItem('JwtToken')}` }
+      });
+    }
+    
+    fetchData();
+    alert('Old videos cleaned up!');
+  } catch (error) {
+    console.error('Error deleting videos:', error);
+  }
+};
   const uploadButton = (
     <button
       style={{
         border: 0,
         background: '#c71b29',
-        padding:'20px',
-        borderRadius:'10px',
+        padding: '20px',
+        borderRadius: '10px',
         cursor: 'pointer', // Ensure the button is clickable
       }}
       type="button"
       onClick={handleSvgClick}
     >
-      <PlusOutlined style={{color:'white'}} />
+      <PlusOutlined style={{ color: 'white' }} />
       <div
         style={{
           marginTop: 8,
@@ -272,123 +377,244 @@ const EditModel = () => {
   );
 
   return (
-   <>
-   <Topnav/>
-   <Header/>
-   <Container>
-   <div className="profile-card">
-        <h1 className="title">Profile Page</h1>
-        
-        <div className='profile'>
-        <div className="profile-info left">
-          <div className="profile-pic">
-            <img src={`${API_URL}${details?.attributes?.Poster?.data?.attributes?.url}`} alt="Profile" />
-          </div>
-          <div className="profile-details">
-            {!editing ? (
-              <>
-                <h2 className="name">{details?.attributes?.Name}</h2>
-                {/* <p className="email">{details?.attributes.Email}</p> */}
-                <p className="bio"><span>H: {details?.attributes?.Height}cm</span>{" "}|{" "}<span>W: {details?.attributes.Weight}kg</span></p>
-                <p className="bio"><span>Eye Color: {details?.attributes?.EyeColor}</span>{" "}|{" "}<span>Hair Color: {details?.attributes.HairColor}</span></p>
-                <p className="bio">{details?.attributes?.Description}</p>
-                <button className="edit-button" onClick={toggleEditing}>
-                  Edit Profile
-                </button>
-              </>
-            ) : (
-              <div className="edit-form">
-              <div className="form-group">
-                <label>Name</label>
-                <input
-                  type="text"
-                  name="fullName"
-                  value={fullName}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <div className="TwoField">
-                <div className="form-group">
-                  <label>Height</label>
-                  <input
-                    type="text"
-                    name="height"
-                    value={height}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Weight</label>
-                  <input
-                    type="text"
-                    name="weight"
-                    value={weight}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-              <div className="TwoField">
-                <div className="form-group">
-                  <label>Eye Color</label>
-                  <input
-                    type="text"
-                    name="eyeColor"
-                    value={eyeColor}
-                    onChange={handleInputChange}
-                  />
-                </div>
-                <div className="form-group">
-                  <label>Hair Color</label>
-                  <input
-                    type="text"
-                    name="hairColor"
-                    value={hairColor}
-                    onChange={handleInputChange}
-                  />
-                </div>
-              </div>
-              <div className="form-group">
-                <label>Description</label>
-                <textarea
-                  type="text"
-                  name="description"
-                  rows={4}
-                  value={description}
-                  onChange={handleInputChange}
-                />
-              </div>
-              <button className="save-button" onClick={handleFieldChange}>
-                Save
-              </button>
-            </div>
-            )}
-          </div>
-        </div>
-        <div className='right'>
-          
-          <div className='right-up'>
-        <div className='r1'>
-        <h2 className="gallery-title">Poster</h2>
-        <div className="gallery-item gallery1">
-              <img src={`${API_URL}${details?.attributes?.Poster?.data?.attributes?.url}`}  alt={`Model Image`} className="gallery-image" />
-              <button className="edit-Pic" onClick={() => setIsModalOpen('poster')}>
-                  Change Poster
-                </button>
-        </div>
-        </div>
+    <>
+      <Topnav />
+      <Header />
+      <Container>
+        <div className="profile-card">
+          <h1 className="title">Profile Page</h1>
 
-        <div className='r1'>
-        <h2 className="gallery-title">Thumbnail</h2>
-        <div className="gallery-item gallery1">
-              <img src={`${API_URL}${details?.attributes?.Thumbnail?.data?.attributes?.url}`}  alt={`Model Image`} className="gallery-image" />
-         <button className="edit-Pic" onClick={() => setIsModalOpen('thumbnail')}>
-                  Change Thumbnail
-                </button>
-        </div>
-        </div>
-        </div>
-        <div className='r2'>
-        <h2 className="gallery-title">Images</h2>
+          <div className='profile'>
+            <div className="profile-info left">
+              <div className="profile-pic">
+                <img src={`${API_URL}${details?.attributes?.Poster?.data?.attributes?.url}`} alt="Profile" />
+              </div>
+              <div className="profile-details">
+                {!editing ? (
+                  <>
+                    <h2 className="name">{details?.attributes?.Name}</h2>
+                    {/* <p className="email">{details?.attributes.Email}</p> */}
+                    <p className="bio"><span>H: {details?.attributes?.Height}cm</span>{" "}|{" "}<span>W: {details?.attributes.Weight}kg</span></p>
+                    <p className="bio"><span>Eye Color: {details?.attributes?.EyeColor}</span>{" "}|{" "}<span>Hair Color: {details?.attributes.HairColor}</span></p>
+                    <p className="bio">{details?.attributes?.Description}</p>
+                    <button className="edit-button" onClick={toggleEditing}>
+                      Edit Profile
+                    </button>
+                  </>
+                ) : (
+                  <div className="edit-form">
+                    <div className="form-group">
+                      <label>Name</label>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={fullName}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <div className="TwoField">
+                      <div className="form-group">
+                        <label>Height</label>
+                        <input
+                          type="text"
+                          name="height"
+                          value={height}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Weight</label>
+                        <input
+                          type="text"
+                          name="weight"
+                          value={weight}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="TwoField">
+                      <div className="form-group">
+                        <label>Eye Color</label>
+                        <input
+                          type="text"
+                          name="eyeColor"
+                          value={eyeColor}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                      <div className="form-group">
+                        <label>Hair Color</label>
+                        <input
+                          type="text"
+                          name="hairColor"
+                          value={hairColor}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    </div>
+                    <div className="form-group">
+                      <label>Description</label>
+                      <textarea
+                        type="text"
+                        name="description"
+                        rows={4}
+                        value={description}
+                        onChange={handleInputChange}
+                      />
+                    </div>
+                    <button className="save-button" onClick={handleFieldChange}>
+                      Save
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className='right'>
+
+              <div className='right-up'>
+                <div className='r1'>
+                  <h2 className="gallery-title">Poster</h2>
+                  <div className="gallery-item gallery1">
+                    <img src={`${API_URL}${details?.attributes?.Poster?.data?.attributes?.url}`} alt={`Model Image`} className="gallery-image" />
+                    <button className="edit-Pic" onClick={() => setIsModalOpen('poster')}>
+                      Change Poster
+                    </button>
+                  </div>
+                </div>
+
+                <div className='r1'>
+                  <h2 className="gallery-title">Thumbnail</h2>
+                  <div className="gallery-item gallery1">
+                    <img src={`${API_URL}${details?.attributes?.Thumbnail?.data?.attributes?.url}`} alt={`Model Image`} className="gallery-image" />
+                    <button className="edit-Pic" onClick={() => setIsModalOpen('thumbnail')}>
+                      Change Thumbnail
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className='r2'>
+                <h2 className="gallery-title">Images</h2>
+
+                <div className="gallery1">
+                  {[...Array(5)].map((_, index) => {
+                    const image = details?.attributes?.Images?.data?.[index];
+                    const fileInputId = `fileInput_${index}`;
+
+                    return (
+                      <div key={index} className="gallery-item">
+                        {image ? (
+                          <>
+                            <img src={`${API_URL}${image?.attributes?.url}`} alt={`Model ${index}`} className="gallery-image" />
+                            <button className="edit-Pic" onClick={() => { setIsModalOpen('Images'); setMultipleImage(`${API_URL}${image?.attributes?.url}`); setImageId(`${image.id}`) }}>
+                              Change Image
+                            </button>
+                          </>
+                        ) : (
+                          <div className="gallery-item">
+                            <img src={`https://api.moviemads.com/uploads/empty_image_dd70f20899.jpg`} alt={`Model `} className="gallery-image" />
+                            <button className="edit-Pic" onClick={() => { setIsModalOpen('Images'); }}>
+                              Change Image
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+
+              </div>
+<div style={{
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'start',
+  gap: '16px',
+  margin: '20px 0'
+}}>
+  <h2 style={{
+    fontSize: '1.5rem',
+    fontWeight: '600',
+    marginBottom: '10px',
+    textAlign: 'center'
+  }}>Video</h2>
+  
+  <div style={{
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'start',
+    gap: '16px',
+    width: '100%'
+  }}>
+  <video 
+  style={{ 
+    width: '100%',
+    maxWidth: '500px',
+    height: '300px',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    display: details?.attributes?.VideoFile?.data?.[0] ? 'block' : 'none'
+  }} 
+  controls 
+  autoPlay 
+  loop
+  key={details?.attributes?.VideoFile?.data?.[0]?.id || 'no-video'} // Add key to force re-render
+>
+  {details?.attributes?.VideoFile?.data?.[0] && (
+    <source
+      src={`${API_URL}${details.attributes.VideoFile.data[0].attributes.url}?t=${new Date().getTime()}`}
+      type="video/mp4"
+    />
+  )}
+  Your browser does not support the video tag.
+</video>
+    
+    {!details?.attributes?.VideoFile?.data?.[0] && (
+      <p style={{ color: '#666' }}>No video available</p>
+    )}
+    
+    <div style={{
+      display: 'flex',
+      gap: '12px',
+      justifyContent: 'start',
+      width: '100%'
+    }}>
+      <button 
+        style={{
+          padding: '8px 16px',
+          backgroundColor: '#ff0015',
+          color: 'white',
+          border: 'none',
+          borderRadius: '4px',
+          cursor: 'pointer',
+          fontSize: '0.9rem'
+        }}
+        onClick={() => setIsModalOpen('VideoFile')}
+      >
+        {details?.attributes?.VideoFile?.data?.[0] ? 'Change Video' : 'Upload Video'}
+      </button>
+      
+      {details?.attributes?.VideoFile?.data?.length > 1 && (
+        <button 
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#f0f0f0',
+            color: '#333',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '0.9rem'
+          }}
+          onClick={deleteOldVideos}
+        >
+          Clean Up Old Videos
+        </button>
+      )}
+    </div>
+  </div>
+</div>
+
+{/* <div className='r2'>
+<h2 className="gallery-title">Images</h2>
 
         <div className="gallery1">
   {[...Array(5)].map((_, index) => {
@@ -416,29 +642,27 @@ const EditModel = () => {
     );
   })}
 </div>
-
-
+</div> */}
+            </div>
+          </div>
         </div>
-        </div>
-        </div>
-      </div>
-      {isModalOpen && (
-        <ProfileModal
-          closeModal={toggleModal}
-          handleFileChange={handleFileChange}
-          handleImageUpload={handlePosterUpload}
-          currentImage={`${API_URL}${details?.attributes?.Poster?.data?.attributes?.url}`}
-          handleSvgClick={handleSvgClick}
-          fileInputRef={fileInputRef}
-        />
-      )}
+        {isModalOpen && (
+          <ProfileModal
+            closeModal={toggleModal}
+            handleFileChange={handleFileChange}
+            handleImageUpload={handlePosterUpload}
+            // currentImage={`${API_URL}${details?.attributes?.Poster?.data?.attributes?.url}`}
+            handleSvgClick={handleSvgClick}
+            fileInputRef={fileInputRef}
+          />
+        )}
 
         {isModalOpen === 'thumbnail' && (
           <ProfileModal
             closeModal={() => setIsModalOpen(false)}
             handleFileChange={handleFileChange}
             handleImageUpload={handleThumbnailUpload}
-            currentImage={`${API_URL}${details?.attributes?.Thumbnail?.data?.attributes?.url}`}
+            // currentImage={`${API_URL}${details?.attributes?.Thumbnail?.data?.attributes?.url}`}
             handleSvgClick={handleSvgClick}
             fileInputRef={fileInputRef}
           />
@@ -448,48 +672,224 @@ const EditModel = () => {
             closeModal={() => setIsModalOpen(false)}
             handleFileChange={handleFileChange}
             handleImageUpload={handleImagesUpload}
-            currentImage={multipleImage}
+            // currentImage={multipleImage}
             handleSvgClick={handleSvgClick}
             fileInputRef={fileInputRef}
           />
         )}
-   </Container>
-      <Footer/>
-    {/* Modal for changing profile picture */}
-   </>
+      {isModalOpen === 'VideoFile' && (
+  <ProfileModal
+    closeModal={() => setIsModalOpen(false)}
+    handleFileChange={handleFileChange}
+    handleImageUpload={handleVideoFileUpload}
+    // currentImage={
+    //   details?.attributes?.VideoFile?.data?.[0]?.attributes?.url
+    //     ? `${API_URL}${details.attributes.VideoFile.data[0].attributes.url}`
+    //     : null
+    // }
+    handleSvgClick={handleSvgClick}
+    fileInputRef={fileInputRef}
+    isVideo={true}
+  />
+)}
+      </Container>
+      <Footer />
+      {/* Modal for changing profile picture */}
+    </>
   )
 }
 
-const ProfileModal = ({ closeModal, handleFileChange,handleSvgClick,fileInputRef, handleImageUpload, currentImage }) => {
+const ProfileModal = ({ 
+  closeModal, 
+  handleFileChange, 
+  handleSvgClick, 
+  fileInputRef, 
+  handleImageUpload, 
+  currentImage,
+  isVideo = false 
+}) => {
   const [selectedFile, setSelectedFile] = useState(null);
 
   const handleFileSelected = (e) => {
-    setSelectedFile(e.target.files[0]);
+    const file = e.target.files[0];
+    if (file) {
+      // Additional validation for video files
+      if (isVideo) {
+        const validTypes = ['video/mp4', 'video/quicktime', 'video/x-msvideo'];
+        if (!validTypes.includes(file.type)) {
+          alert('Please upload a valid video file (MP4, MOV, AVI)');
+          return;
+        }
+      }
+      setSelectedFile(file);
+    }
   };
-// console.log(selectedFile,'selectedFile')
 
   return (
-    <div className="modal">
-      <div className="modal-content1">
-        <span className="close" onClick={closeModal}>
+    <div className="modal" style={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      zIndex: 1000,
+    }}>
+      <div className="modal-content1" style={{
+        backgroundColor: 'white',
+        padding: '20px',
+        borderRadius: '8px',
+        width: '90%',
+        maxWidth: '500px',
+        maxHeight: '90vh',
+        overflowY: 'auto',
+        position: 'relative'
+      }}>
+        <span className="close" onClick={closeModal} style={{
+          position: 'absolute',
+          top: '10px',
+          right: '15px',
+          fontSize: '24px',
+          cursor: 'pointer',
+          color: '#333'
+        }}>
           &times;
         </span>
-        <h2>Change Profile Picture</h2>
+        
+        <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>
+          Change {isVideo ? 'Video' : 'Image'}
+        </h2>
 
-        <div className="modal-fields">
-          <div className="modal-upload">
-            <div class="input-div" onClick={handleSvgClick}>
-          <svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" stroke-linejoin="round" stroke-linecap="round" viewBox="0 0 24 24" stroke-width="2" fill="none" stroke="currentColor" class="icon"><polyline points="16 16 12 12 8 16"></polyline><line y2="21" x2="12" y1="12" x1="12"></line><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"></path><polyline points="16 16 12 12 8 16"></polyline></svg>
-            <input class="input" name="file" type="file" accept="image/*"  ref={fileInputRef} onChange={handleFileSelected}/>
-          </div>
-          </div>
-                {selectedFile?(<p><span style={{color:'#c71b29',fontWeight:'bold'}} >Selected Image:</span>{selectedFile.name}</p>):null}
-          <button
-            className="save-button"
-            onClick={() => handleImageUpload(selectedFile)}
+        <div style={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '15px'
+        }}>
+          {/* File Upload Area */}
+          <div 
+            style={{
+              border: '2px dashed #c71b29',
+              padding: '30px',
+              textAlign: 'center',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              backgroundColor: '#f9f9f9'
+            }}
+            onClick={handleSvgClick}
           >
-            Save
-          </button>
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="48" 
+              height="48" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="#c71b29" 
+              strokeWidth="2"
+              style={{ marginBottom: '10px' }}
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <p style={{ margin: '10px 0', color: '#666' }}>
+              Click to select {isVideo ? 'a video file' : 'an image'}
+            </p>
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              name={isVideo ? "VideoFile" : "file"}
+              accept={isVideo ? "video/*" : "image/*"} 
+              onChange={handleFileSelected}
+              style={{ display: 'none' }}
+            />
+          </div>
+
+          {/* Selected File Info */}
+          {selectedFile && (
+            <div style={{ 
+              padding: '10px',
+              backgroundColor: '#f0f0f0',
+              borderRadius: '4px'
+            }}>
+               <p style={{ margin: 0, color: '#c71b29' }}>
+                <strong style={{ color: '#666' }}><span>Selected File:</span></strong> {selectedFile.name}
+                <br />
+                <strong style={{ color: '#666' }}><span>Size:</span> </strong>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+              </p>
+            </div>
+          )}
+
+          {/* Preview Area */}
+          {currentImage && !isVideo && (
+            <div style={{ textAlign: 'center' }}>
+              <h4 style={{ marginBottom: '10px' }}>Current:</h4>
+              <img 
+                src={currentImage} 
+                alt="Current" 
+                style={{ 
+                  maxWidth: '100%',
+                  maxHeight: '200px',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd'
+                }} 
+              />
+            </div>
+          )}
+
+          {currentImage && isVideo && (
+            <div style={{ textAlign: 'center' }}>
+              <h4 style={{ marginBottom: '10px' }}>Current Video:</h4>
+              <video 
+                controls 
+                style={{ 
+                  maxWidth: '100%',
+                  maxHeight: '200px',
+                  borderRadius: '4px',
+                  border: '1px solid #ddd'
+                }}
+              >
+                <source src={currentImage} type="video/mp4" />
+                Your browser does not support the video tag.
+              </video>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginTop: '20px'
+          }}>
+            <button
+              onClick={closeModal}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '4px',
+                border: '1px solid #ccc',
+                background: 'white',
+                cursor: 'pointer'
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleImageUpload(selectedFile)}
+              disabled={!selectedFile}
+              style={{
+                padding: '10px 20px',
+                borderRadius: '4px',
+                border: 'none',
+                background: selectedFile ? '#c71b29' : '#ccc',
+                color: 'white',
+                cursor: selectedFile ? 'pointer' : 'not-allowed'
+              }}
+            >
+              Save Changes
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -497,7 +897,7 @@ const ProfileModal = ({ closeModal, handleFileChange,handleSvgClick,fileInputRef
 };
 
 export default EditModel;
-
+      
 const Container = styled.main`
   min-height: calc(100vh - 70px);
   padding: 0 calc(3.5vw + 5px);

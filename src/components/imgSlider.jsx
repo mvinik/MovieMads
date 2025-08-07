@@ -18,9 +18,11 @@ function ImgSlider() {
     dots: true,
     infinite: true,
     speed: 500,
-    slidesToshow: 1,
+    slidesToShow: 1,
     slidesToScroll: 1,
-    autoplay: true,
+    autoplay: false,
+    arrows:true,
+     centerMode: false, // ✅ Prevent slide preview
   };
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,7 @@ const option1 = {
         movies.map(movie => {
           if (movie.attributes.movie.data) {
             return (
-                  <Link to={'/details/' + movie.attributes.movie.data.id} onClick={() => window.scrollTo(0, 0)} className="movie-link1">
+              <Link to={'/details/' + movie.attributes.movie.data.id} onClick={() => window.scrollTo(0, 0)} className="movie-link1">
               <Wrap key={movie.id}>
                 <Info>
                   <Subtitle>{movie.attributes.movie.data.attributes.MovieName}</Subtitle>
@@ -101,6 +103,13 @@ const Carousel = styled(Slider)`
     color: rgb(150, 158, 171);
   }
 
+  .slick-next {
+  right: 50px !important; /* move it 20px from the right edge */
+}
+
+ .slick-prev {
+  left: 30px !important; /* move it 20px from the right edge */
+}
   .slick-next:before {
    color: #ff0015;
    font-size: 40px;
@@ -127,13 +136,14 @@ const Carousel = styled(Slider)`
     display: none;
   }
   .slick-list {
-    overflow: visible;
+    overflow: hidden;
   }
 
 
   Button {
     z-index: 1;
   }
+    
 `;
 
 const SkeletonWrapper = styled.div`
@@ -163,11 +173,11 @@ const Wrap = styled.div`
       height: 25vh;
     }
   img {
-    border: 5px solid transparent;
+    // border: 5px solid transparent;
     width:100%;
     height:100%;
     object-fit:cover;
-    border-radius: 10px;
+    // border-radius: 10px;
     opacity: 0.8;
     box-shadow: rgb(0 0 0 / 69%) 0px 26px 30px -10px,
       rgb(0 0 0 / 73%) 0px 16px 10px -10px;
@@ -179,9 +189,9 @@ const Info = styled.div`
 
 position: absolute;
 z-index: 3;
-bottom: 0;
+bottom: 10px;
 left: 0;
-padding-left: 20px;
+padding-left: 50px;
 padding-top: 10px;
 `;
 

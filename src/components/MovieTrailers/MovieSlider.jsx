@@ -11,7 +11,7 @@ import axios from "axios";
 const Token = localStorage.getItem("JwtToken");
 const API_URL = process.env.REACT_APP_API_URL;
 function MovieSlider() {
-  
+
   let settings = {
     dots: true,
     infinite: true,
@@ -21,50 +21,50 @@ function MovieSlider() {
     autoplay: true,
   };
 
- 
+
   const [movies, setMovies] = useState([]);
- 
-   
-const option1 = {
-  headers: {
-  'Authorization':`Bearer ${Token}`
-  },
+
+
+  const option1 = {
+    headers: {
+      'Authorization': `Bearer ${Token}`
+    },
   };
 
-  
-  const getSlider = async() => {
-    try{
+
+  const getSlider = async () => {
+    try {
       const res = await axios.get(`${API_URL}/api/slider-for-movie-trailers?populate[0]=movieTrailer.MovieThumbnail&populate[1]=movieTrailer.VideoFile`);
       // console.log("Slider for movie trailer",res.data.data);
       setMovies(res.data.data);
-    }catch(err){
+    } catch (err) {
       console.error(err);
     }
   }
   useEffect(() => {
     getSlider();
-  },[]);
+  }, []);
 
   return (
     <Carousel {...settings}>
-      
+
       {movies.map((movie) => (
-  <Link to={'/details/movieTrailer/'+movie.attributes.movieTrailer.data.id} onClick={() => window.scrollTo(0, 0)} className="movie-link1" >
-       <Wrap>
-       <Info key={movie.id}>
-       <Subtitle>{movie.attributes.movieTrailer.data.attributes.MovieName}</Subtitle>
-     <Button1><PlayCircleFilled spin/> Play Now</Button1>
-      <Button2><InfoCircleFilled /> More Info</Button2>
-       {/* <Description>{movie.attributes.movieTrailer.data.attributes.Description}</Description> */}
-     </Info>
-     <Overlays>
-       <img src={`${API_URL}${movie.attributes.movieTrailer.data.attributes.MovieThumbnail.data.attributes.url}`} alt="Img" id={movie.id}/>
-       </Overlays>
-</Wrap>
-       </Link>
-           
-    ))}
-      
+        <Link to={'/details/movieTrailer/' + movie.attributes.movieTrailer.data.id} onClick={() => window.scrollTo(0, 0)} className="movie-link1" >
+          <Wrap>
+            <Info key={movie.id}>
+              <Subtitle>{movie.attributes.movieTrailer.data.attributes.MovieName}</Subtitle>
+              <Button1><PlayCircleFilled spin /> Play Now</Button1>
+              <Button2><InfoCircleFilled /> More Info</Button2>
+              {/* <Description>{movie.attributes.movieTrailer.data.attributes.Description}</Description> */}
+            </Info>
+            <Overlays>
+              <img src={`${API_URL}${movie.attributes.movieTrailer.data.attributes.MovieThumbnail.data.attributes.url}`} alt="Img" id={movie.id} />
+            </Overlays>
+          </Wrap>
+        </Link>
+
+      ))}
+
     </Carousel>
   );
 }
@@ -78,6 +78,13 @@ const Carousel = styled(Slider)`
     font-size: 10px;
     color: rgb(150, 158, 171);
   }
+      .slick-next {
+  right: 50px !important; /* move it 20px from the right edge */
+}
+
+ .slick-prev {
+  left: 30px !important; /* move it 20px from the right edge */
+}
   .slick-next:before {
    color: #ff0015;
    font-size: 40px;
@@ -104,7 +111,7 @@ const Carousel = styled(Slider)`
     display: none;
   }
   .slick-list {
-    overflow: visible;
+    overflow: hidden;
   }
 
   Button {
@@ -136,7 +143,7 @@ const Wrap = styled.div`
       height:25vh;
     }
   img {
-    border: 5px solid transparent;
+    // border: 5px solid transparent;
     opacity: 0.8;
     width:100%;
     height:100%;
@@ -155,7 +162,7 @@ const Wrap = styled.div`
 const Info = styled.div`
 position: absolute;
 z-index: 3;
-bottom: 0;
+bottom: 10px;
 margin-bottom: 10px;
 margin-left: 20px;
 @media (max-width: 768px) {

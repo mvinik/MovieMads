@@ -14,6 +14,8 @@ import "react-loading-skeleton/dist/skeleton.css";
 import Header from "./Header";
 import VideoModal from "./VideoModal";
 import ShortFlimSlider from './ShortFilms/ShortFlimSlider'
+import ArtistsSlider from "./ArtistsSlider";
+import ImgHome from "../ImgHome";
 
 function Home() {
   const [showModal, setShowModal] = useState(false);
@@ -39,14 +41,17 @@ function Home() {
     <>
     <Topnav/>
     <Header/>
+      <ImgSlider />{/* slider in home */}
       <Container>
-        <ImgSlider />{/* slider in home */}
+      
+        {/* <ImgHome/> */}
         <UpcomingMovies />
         <Movies />
-      <h1>SHORT FILM AWARDS 2024 <span>&#8702;</span> </h1>
-        <Viewers />
-        <h1>SHORT FILMS <span>&#8702;</span> </h1>
-       <ShortFlimSlider/>
+        <ArtistsSlider/>
+      {/* <h1>SHORT FILM AWARDS 2024 <span>&#8702;</span> </h1>
+        <Viewers /> */}
+       {/* <h1>SHORT FILMS <span>&#8702;</span> </h1> */}
+       {/* <ShortFlimSlider/>  */}
         <MovieReviews />
         <EventPartners />
       </Container>

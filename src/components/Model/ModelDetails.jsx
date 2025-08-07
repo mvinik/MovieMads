@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import styled from "styled-components";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { Button, ConfigProvider, Form, Input, Modal,message, Skeleton,Dropdown, Menu } from "antd";
+import { Button, ConfigProvider, Form, Input, Modal, message, Skeleton, Dropdown, Menu } from "antd";
 import {
   StarOutlined,
   VideoCameraAddOutlined,
@@ -15,7 +15,7 @@ import {
 import Footer from "../Footer/Footer";
 import TextArea from "antd/es/input/TextArea";
 import { Carousel } from "react-responsive-carousel";
-import "react-responsive-carousel/lib/styles/carousel.min.css"; 
+import "react-responsive-carousel/lib/styles/carousel.min.css";
 import Topnav from "../TopNav/Topnav";
 import Header from "../Header";
 import ShareButton from "./ShareButton";
@@ -27,8 +27,10 @@ const ModelDetails = () => {
   const [loading, setLoading] = useState(true); // Initialize loading state as true
   const [modalVisible, setModalVisible] = useState(false);
   const [modalVisible1, setModalVisible1] = useState(false);
+    const [modalVisible2, setModalVisible2] = useState(false);
   const [selectedImageUrl, setSelectedImageUrl] = useState("");
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [selectedVideoIndex, setSelectedVideoIndex] = useState(0);
 
   const [form] = Form.useForm();
   const { id } = useParams();
@@ -36,13 +38,16 @@ const ModelDetails = () => {
   const JWT = localStorage.getItem("User");
   const Token = localStorage.getItem("JwtToken");
   const UserId = localStorage.getItem("UserId");
-  const [yourName,setYourName] =useState('');
-  const [mobile,setMobile] =useState('');
-  const [emailId,setEmailId] =useState('');
-  const [messages,setMessages] =useState('');
+  const [yourName, setYourName] = useState('');
+  const [mobile, setMobile] = useState('');
+  const [emailId, setEmailId] = useState('');
+  const [messages, setMessages] = useState('');
 
 
-
+ const handleVideoOpen=(index)=>{
+ setSelectedVideoIndex(index);
+    setModalVisible2(true);
+ }
   const handleOpenModal = (index) => {
     setSelectedImageIndex(index);
     setModalVisible(true);
@@ -57,6 +62,9 @@ const ModelDetails = () => {
   const handleCloseModal1 = () => {
     setModalVisible1(false);
   };
+  const handleVideoClose = () => {
+  setModalVisible2(false);
+};
 
   const fetchData = async () => {
     try {
@@ -98,18 +106,18 @@ const ModelDetails = () => {
     }
   };
 
-  const handleSubmit = async() =>{
+  const handleSubmit = async () => {
     try {
       const values = await form.validateFields();
-      const res = await axios.post(`${API_URL}/api/hiring-models`,{
+      const res = await axios.post(`${API_URL}/api/hiring-models`, {
         data: {
           Name: values.yourName,
-          MobileNumber:values.mobile,
-          Email:values.emailId,
-          Message:values.messages,
+          MobileNumber: values.mobile,
+          Email: values.emailId,
+          Message: values.messages,
           model: id
-        } 
-      } 
+        }
+      }
       )
       message.success('Model Request submitted successfully!');
       setModalVisible1(false);
@@ -123,13 +131,13 @@ const ModelDetails = () => {
 
   const url = window.location.href;
   const title = "Check this out!";
- 
 
- 
+
+
   return (
     <>
-    <Topnav/>
-    <Header/>
+      <Topnav />
+      <Header />
       <Container>
         {loading ? (
           <Skeleton
@@ -156,7 +164,7 @@ const ModelDetails = () => {
                     fontWeight: "bold",
                     color: "red",
                     fontSize: "1.5em",
-                    padding:'5px',
+                    padding: '5px',
                   }}
                 >|</span>{details?.attributes.Language}
               </Lang>
@@ -169,7 +177,7 @@ const ModelDetails = () => {
                 </Look>
                 <Look>
                   <span>
-                  <StarOutlined /> Weight:{" "}
+                    <StarOutlined /> Weight:{" "}
                   </span>
                   {details?.attributes.Weight} kg
                 </Look>
@@ -183,7 +191,7 @@ const ModelDetails = () => {
               </Look>
               <Look>
                 <span>
-                <StarOutlined /> Eye Color:{" "}
+                  <StarOutlined /> Eye Color:{" "}
                 </span>
                 {details?.attributes.EyeColor}{" "}
               </Look>
@@ -191,16 +199,16 @@ const ModelDetails = () => {
               {/* </div> */}
               <Description>{details?.attributes.Description} </Description>
               <div className="two-input" style={{ margin: "10px 0" }}>
-              <PlayButton onClick={handleOpenModal1}>Hire me</PlayButton>
-              <div>
-                <ShareButton url={url} title={title} />
-              </div>
+                <PlayButton onClick={handleOpenModal1}>Hire me</PlayButton>
+                <div>
+                  <ShareButton url={url} title={title} />
+                </div>
               </div>
               <Modal
                 visible={modalVisible1}
                 onCancel={handleCloseModal1}
                 footer={null}
-                style={{background:'none'}}
+                style={{ background: 'none' }}
               >
                 <ConfigProvider
                   theme={{
@@ -241,58 +249,58 @@ const ModelDetails = () => {
                     },
                   }}
                 >
-                   <Form
-            layout="vertical"
-            size="large"
-            className="form-container"
-            style={{padding:'20px'}}
-            form={form}
-          >
-            <div className='two-input' style={{justifyContent:'space-between'}}>
-            <Form.Item
-              label="Your Name"
-              name="yourName"
-              rules={[{ required: true, message: 'Please Enter Your Name!' }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="Mobile Number"
-              name="mobile"
-              rules={[{ required: true, message: 'Please Enter Mobile Number!' },{pattern: /^[0-9]{10}$/, message: 'Please Enter Valid Mobile Number!' }]} 
-              className="input-container"
-              onChange={handleInputChange}
-            >
-              <Input />
-            </Form.Item>
-              </div>
-              <Form.Item
-              label="Email Address"
-              name="emailId"
-              rules={[{ required: true, message: 'Please Enter Your Email address!' }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="Your Message to our Model"
-              name="messages"
-              rules={[{ required: true, message: 'Please Describe your Message' }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-          <TextArea rows={5}   />
-            </Form.Item>
+                  <Form
+                    layout="vertical"
+                    size="large"
+                    className="form-container"
+                    style={{ padding: '20px' }}
+                    form={form}
+                  >
+                    <div className='two-input' style={{ justifyContent: 'space-between' }}>
+                      <Form.Item
+                        label="Your Name"
+                        name="yourName"
+                        rules={[{ required: true, message: 'Please Enter Your Name!' }]}
+                        className="input-container"
+                        onChange={handleInputChange}
+                      >
+                        <Input />
+                      </Form.Item>
+                      <Form.Item
+                        label="Mobile Number"
+                        name="mobile"
+                        rules={[{ required: true, message: 'Please Enter Mobile Number!' }, { pattern: /^[0-9]{10}$/, message: 'Please Enter Valid Mobile Number!' }]}
+                        className="input-container"
+                        onChange={handleInputChange}
+                      >
+                        <Input />
+                      </Form.Item>
+                    </div>
+                    <Form.Item
+                      label="Email Address"
+                      name="emailId"
+                      rules={[{ required: true, message: 'Please Enter Your Email address!' }]}
+                      className="input-container"
+                      onChange={handleInputChange}
+                    >
+                      <Input />
+                    </Form.Item>
+                    <Form.Item
+                      label="Your Message to our Model"
+                      name="messages"
+                      rules={[{ required: true, message: 'Please Describe your Message' }]}
+                      className="input-container"
+                      onChange={handleInputChange}
+                    >
+                      <TextArea rows={5} />
+                    </Form.Item>
 
-            <Form.Item>
-              <Button type="primary" htmlType="submit" onClick={handleSubmit} >
-                Submit
-              </Button>
-            </Form.Item>
-              </Form>
+                    <Form.Item>
+                      <Button type="primary" htmlType="submit" onClick={handleSubmit} >
+                        Submit
+                      </Button>
+                    </Form.Item>
+                  </Form>
                 </ConfigProvider>
               </Modal>
             </DetailsContainer>
@@ -304,13 +312,13 @@ const ModelDetails = () => {
       </h1>
       <Container>
         <Content1>
-          {details?.attributes.Images.data.map((model,index) => (
+          {details?.attributes.Images.data.map((model, index) => (
             <>
               <div key={model.id}>
                 <div className="movieTrailers-container1">
                   <img
-                     src={`${API_URL}${model.attributes.url}`}
-                     onClick={() => handleOpenModal(index)}
+                    src={`${API_URL}${model.attributes.url}`}
+                    onClick={() => handleOpenModal(index)}
                     alt="Img"
                     id={model.id}
                   />
@@ -320,8 +328,20 @@ const ModelDetails = () => {
                 visible={modalVisible}
                 onCancel={handleCloseModal}
                 footer={null}
-                style={{ overflowY: "hidden" }}
+                // style={{ }}
                 className='Modal-Model'
+                style={{
+                  overflowY: "hidden"
+                }}
+                bodyStyle={{
+                  padding: 0,
+                  margin: 0,
+                  overflow: 'hidden',
+                  // backgroundColor: 'black',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
               >
                 <Carousel
                   selectedItem={selectedImageIndex}
@@ -330,21 +350,117 @@ const ModelDetails = () => {
                   infiniteLoop
                   useKeyboardArrows
                 >
-          {details?.attributes.Images.data.map((model) => (
-            <div key={model.id}>
-              <img
-              className="ModelImage"
-                src={`${API_URL}${model.attributes.url}`}
-                alt="Img"
-              />
-            </div>
-          ))}
-        </Carousel>
+                  {details?.attributes.Images.data.map((model) => (
+                    <div key={model.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+
+                      }}>
+                      <img
+                        style={{
+                          width: 'auto',
+                          height: 'auto',
+                          maxWidth: '100%',
+                          maxHeight: '60vh',
+                          objectFit: 'unset',
+                        }}
+                        className="ModelImage"
+                        src={`${API_URL}${model.attributes.url}`}
+                        alt="Img"
+                      />
+                    </div>
+                  ))}
+                </Carousel>
               </Modal>
             </>
           ))}
         </Content1>
       </Container>
+        {details?.attributes?.VideoFile?.data?.length > 0 && (
+  <>
+      <h1 style={{ textAlign: "center" }}>
+        <b style={{ color: "#e50914" }}>{details?.attributes.Name}'s</b> Video
+      </h1>
+  
+
+      <Container>
+        <Content1>
+          {details?.attributes?.VideoFile?.data?.map((model, index) => (
+            <>
+              <div key={model.id}>
+                <div className="movieTrailers-container1"
+                  onClick={() => handleVideoOpen(index)}
+                >
+                  <video style={{ height: '100%', width: '100%' }} controls autoPlay muted  loop>
+                    <source src={`${API_URL}${model?.attributes?.url}`} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </div>
+              </div>
+              <Modal
+                visible={modalVisible2}
+                onCancel={handleVideoClose}
+                footer={null}
+                // style={{ }}
+                className='Modal-Model'
+                style={{
+                  overflowY: "hidden"
+                }}
+                bodyStyle={{
+                  padding: 0,
+                  margin: 0,
+                  overflow: 'hidden',
+                  // backgroundColor: 'black',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Carousel
+                  selectedItem={selectedVideoIndex}
+                  showThumbs={false}
+                  showStatus={false}
+                  infiniteLoop
+                  useKeyboardArrows
+                >
+                  {details?.attributes?.VideoFile?.data?.map((model) => (
+                    <div key={model.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+
+                      }}>
+                      {/* <img
+                  
+                        src={`${API_URL}${model?.attributes?.url}`}
+                        alt="Img"
+                      /> */}
+                       <video 
+                      //  style={{ height: '100%', width: '100%' }}
+                             style={{
+                          width: 'auto',
+                          height: 'auto',
+                          maxWidth: '100%',
+                          maxHeight: '60vh',
+                          objectFit: 'unset',
+                        }}
+                        className="ModelImage" controls autoPlay  loop>
+                    <source src={`${API_URL}${model?.attributes?.url}`} type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                    </div>
+                  ))}
+                </Carousel>
+              </Modal>
+            </>
+          ))}
+        </Content1>
+      </Container>
+       </>
+)}
       <Footer />
     </>
   );

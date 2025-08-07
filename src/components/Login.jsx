@@ -8,13 +8,13 @@ function Login() {
 
   return (
     <Container>
-      <div style={{top: 0,left: 0,width: "100%",height: "100%",position: "absolute",zIndex: -1,backgroundColor: "rgba(0, 0, 0, 0.6)"}}></div>
+      <div style={{ top: 0, left: 0, width: "100%", height: "100%", position: "absolute", zIndex: -1, backgroundColor: "rgba(0, 0, 0, 0.6)" }}></div>
       <CTA>
         <CTALogoOne src="/images/mm logo.png" alt="" />
-        <SignUp  onClick={() =>
-          (window.location =`${API_URL}/api/connect/google`)}>LOGIN</SignUp>
+        <SignUp onClick={() =>
+          (window.location = `${API_URL}/api/connect/google`)}>LOGIN</SignUp>
         <Description>
-        MovieMads: Your gateway to successful film marketing. Showcase your film pre-release with strategic promotion, branding, and social media campaigns. From press releases to targeted audience outreach, MovieMads ensures your film gets the attention it deserves. Join us and design your path to success in the film industry.
+          MovieMads: Your gateway to successful film marketing. Showcase your film pre-release with strategic promotion, branding, and social media campaigns. From press releases to targeted audience outreach, MovieMads ensures your film gets the attention it deserves. Join us and design your path to success in the film industry.
         </Description>
       </CTA>
     </Container>

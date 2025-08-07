@@ -1,51 +1,62 @@
-// AgentEditModel.jsx
 
-import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import React, { useEffect, useState, useRef } from 'react';
 import styled from 'styled-components';
 import Header from '../Header';
 import Footer from '../Footer/Footer';
 import Topnav from '../TopNav/Topnav';
+import { message } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
+import './Model.css';
+import AgentEditSinger from '../AgentSinger/AgentEditSinger';
+import AgentEditDancer from '../AgentDancer/AgentEditDancer';
+import AgentEditMusician from '../AgentMusician/AgentEditMusician';
 
 const USERID = localStorage.getItem('UserId');
 const API_URL = process.env.REACT_APP_API_URL;
 
-const AgentEditModel = () => {
+const AgentEditModel = ({count}) => {
   const [agentModels, setAgentModels] = useState([]);
-  const [editStates, setEditStates] = useState({});
-  const [formStates, setFormStates] = useState({});
-  const [userDetails, setUserDetails] = useState({});
+  const [editingModelId, setEditingModelId] = useState(null);
+  const [formData, setFormData] = useState({});
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState(null);
+  const [modalType, setModalType] = useState('');
   const [selectedModelId, setSelectedModelId] = useState(null);
-  const [multipleImage, setMultipleImage] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [currentImage, setCurrentImage] = useState('');
   const [imageId, setImageId] = useState('');
+  const [userDetails, setUserDetails] = useState({});
   const fileInputRef = useRef(null);
-  const [loading, setLoading]=useState(false);
+
 
   useEffect(() => {
     const fetchModels = async () => {
       try {
-        const res = await axios.get(`${API_URL}/api/users/${USERID}?populate[agent_models][populate][Poster]=*&populate[agent_models][populate][Thumbnail]=*&populate[agent_models][populate][Images]=*`);
+        const res = await axios.get(
+          // `${API_URL}/api/users/${USERID}?populate[agent_models][populate][Poster]=*&populate[agent_models][populate][Thumbnail]=*&populate[agent_models][populate][Images]=*&populate[agent_models][populate][VideoFile]=*`
+        `${API_URL}/api/users/${USERID}?populate[agent_models][populate][Poster]=*&populate[agent_models][populate][Thumbnail]=*&populate[agent_models][populate][Images]=*&populate[agent_models][populate][VideoFile]=*&populate[agent_singers]=*&populate[agent_dancers]=*&populate[agent_musicians]=*`);
         const models = res.data.agent_models || [];
+        
+        
         setAgentModels(models);
-        // console.log(agentModels,'Agent mdoels')
+      
         setUserDetails(res.data);
-        const initialEdit = {};
-        const initialForms = {};
+        
+
+
+        // Initialize form data for each model
+        const initialFormData = {};
         models.forEach(model => {
-          initialEdit[model.id] = false;
-          initialForms[model.id] = {
+          initialFormData[model.id] = {
             Name: model.Name || '',
             Description: model.Description || '',
             HairColor: model.HairColor || '',
             EyeColor: model.EyeColor || '',
             Height: model.Height || '',
-            Weight: model.Weight || '',
+            Weight: model.Weight || ''
           };
         });
-        setEditStates(initialEdit);
-        setFormStates(initialForms);
+        setFormData(initialFormData);
       } catch (err) {
         console.error('Error fetching agent models:', err);
       }
@@ -56,30 +67,30 @@ const AgentEditModel = () => {
 
   const handleInputChange = (e, modelId) => {
     const { name, value } = e.target;
-    setFormStates(prev => ({
+    setFormData(prev => ({
       ...prev,
       [modelId]: {
         ...prev[modelId],
-        [name]: value,
-      },
+        [name]: value
+      }
     }));
   };
 
-  const toggleEdit = (modelId) => {
-    setEditStates(prev => ({
-      ...prev,
-      [modelId]: !prev[modelId],
-    }));
+  const toggleEditing = (modelId) => {
+    setEditingModelId(editingModelId === modelId ? null : modelId);
   };
 
   const saveModel = async (modelId) => {
     try {
       await axios.put(`${API_URL}/api/agent-models/${modelId}`, {
-        data: formStates[modelId],
+        data: formData[modelId]
       });
-      toggleEdit(modelId);
+      message.success('Model updated successfully!');
+      toggleEditing(modelId);
+      window.location.reload();
     } catch (err) {
       console.error('Error saving model:', err);
+      message.error('Failed to update model');
     }
   };
 
@@ -88,253 +99,497 @@ const AgentEditModel = () => {
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (modalType === 'Poster') handlePosterUpload(file);
-      else if (modalType === 'Thumbnail') handleThumbnailUpload(file);
-      else if (modalType === 'Images') handleImagesUpload(file);
+      setSelectedFile(file);
     }
   };
 
-  const handlePosterUpload = async (file) => {
-    try {
-      const formData = new FormData();
-      formData.append('files', file);
-      formData.append('fileInfo', JSON.stringify({ caption: 'Poster' }));
-      await axios.post(`${API_URL}/api/upload?id=${selectedModelId}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      window.location.reload();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  const handleUpload = async () => {
+    if (!selectedFile || !selectedModelId) return;
 
-  const handleThumbnailUpload = async (file) => {
     try {
       const formData = new FormData();
-      formData.append('files', file);
-      formData.append('fileInfo', JSON.stringify({ caption: 'Thumbnail' }));
-      await axios.post(`${API_URL}/api/upload?id=${selectedModelId}`, formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      window.location.reload();
-    } catch (err) {
-      console.error(err);
-    }
-  };
+      formData.append('files', selectedFile);
 
-  const handleImagesUpload = async (file) => {
-    try {
-      const formData = new FormData();
-      formData.append('files', file);
-      formData.append('fileInfo', JSON.stringify({ caption: 'Images' }));
-      if (imageId) {
-        await axios.post(`${API_URL}/api/upload?id=${imageId}`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-      } else {
-        formData.append('ref', 'api::agent-model.agent-model');
-        formData.append('refId', selectedModelId);
-        formData.append('field', 'Images');
-        await axios.post(`${API_URL}/api/upload`, formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
+      let endpoint = `${API_URL}/api/upload`;
+      let additionalData = {};
+
+      if (modalType === 'Poster') {
+        additionalData = { caption: 'Poster' };
+        const model = agentModels.find(m => m.id === selectedModelId);
+        if (model?.Poster?.id) {
+          endpoint = `${API_URL}/api/upload?id=${model.Poster.id}`;
+        }
+      } else if (modalType === 'Thumbnail') {
+        additionalData = { caption: 'Thumbnail' };
+        const model = agentModels.find(m => m.id === selectedModelId);
+        if (model?.Thumbnail?.id) {
+          endpoint = `${API_URL}/api/upload?id=${model.Thumbnail.id}`;
+        }
+      } else if (modalType === 'Images') {
+        additionalData = { caption: 'Images' };
+        if (imageId) {
+          endpoint = `${API_URL}/api/upload?id=${imageId}`;
+        } else {
+          formData.append('ref', 'api::agent-model.agent-model');
+          formData.append('refId', selectedModelId);
+          formData.append('field', 'Images');
+        }
+      } else if (modalType === 'VideoFile') {
+        if (selectedFile.size > 50 * 1024 * 1024) {
+          message.error('Video file too large (max 50MB)');
+          return;
+        }
+        
+        additionalData = {
+          caption: 'Model Video',
+          alternativeText: `Video for model ${selectedModelId}`
+        };
+        
+        const model = agentModels.find(m => m.id === selectedModelId);
+        if (model?.VideoFile?.[0]?.id) {
+          endpoint = `${API_URL}/api/upload?id=${model.VideoFile[0].id}`;
+        } else {
+          formData.append('ref', 'api::agent-model.agent-model');
+          formData.append('refId', selectedModelId);
+          formData.append('field', 'VideoFile');
+        }
       }
-      setLoading(true);
+
+      formData.append('fileInfo', JSON.stringify(additionalData));
+      
+      await axios.post(endpoint, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      message.success(`${modalType === 'VideoFile' ? 'Video' : 'Image'} uploaded successfully!`);
+      setIsModalOpen(false);
       window.location.reload();
     } catch (err) {
-      console.error(err);
+      console.error('Upload error:', err);
+      message.error(`Failed to upload ${modalType === 'VideoFile' ? 'video' : 'image'}`);
     }
   };
-{loading && 
-  <div class="hourglassBackground">
-  <div class="hourglassContainer">
-    <div class="hourglassCurves"></div>
-    <div class="hourglassCapTop"></div>
-    <div class="hourglassGlassTop"></div>
-    <div class="hourglassSand"></div>
-    <div class="hourglassSandStream"></div>
-    <div class="hourglassCapBottom"></div>
-    <div class="hourglassGlass"></div>
-  </div>
-</div>
-}
 
   const openModal = (type, modelId, img = '', imgId = '') => {
     setIsModalOpen(true);
     setModalType(type);
     setSelectedModelId(modelId);
-    setMultipleImage(img);
+    // setCurrentImage(img);
     setImageId(imgId);
   };
 
-
-  const ProfileModal = ({ closeModal, handleFileChange, handleSvgClick, fileInputRef, currentImage }) => {
+  const ProfileModal = ({ closeModal }) => {
     return (
-      <ModalOverlay onClick={closeModal}>
-        <ModalContent onClick={(e) => e.stopPropagation()}>
-          <ModalHeader>
-            <h2>Upload New Image</h2>
-            <CloseButton onClick={closeModal}>×</CloseButton>
-          </ModalHeader>
-          <ModalBody>
-            {currentImage && <PreviewImage src={currentImage} alt="Current" />}
-            <UploadLabel htmlFor="file-upload">Choose File</UploadLabel>
-            <HiddenInput
-              type="file"
-              id="file-upload"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-            />
-            <Button onClick={handleSvgClick}>Upload</Button>
-          </ModalBody>
-        </ModalContent>
-      </ModalOverlay>
+      <div className="modal" style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}>
+        <div className="modal-content1" style={{
+          backgroundColor: 'white',
+          padding: '20px',
+          borderRadius: '8px',
+          width: '90%',
+          maxWidth: '500px',
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          position: 'relative'
+        }}>
+          <span className="close" onClick={closeModal} style={{
+            position: 'absolute',
+            top: '10px',
+            right: '15px',
+            fontSize: '24px',
+            cursor: 'pointer',
+            color: '#333'
+          }}>
+            &times;
+          </span>
+          
+          <h2 style={{ marginBottom: '20px', textAlign: 'center' }}>
+            Change {modalType === 'VideoFile' ? 'Video' : 'Image'}
+          </h2>
+
+          <div style={{ 
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '15px'
+          }}>
+            <div 
+              style={{
+                border: '2px dashed #c71b29',
+                padding: '30px',
+                textAlign: 'center',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                backgroundColor: '#f9f9f9'
+              }}
+              onClick={handleSvgClick}
+            >
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="48" 
+                height="48" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="#c71b29" 
+                strokeWidth="2"
+                style={{ marginBottom: '10px' }}
+              >
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              <p style={{ margin: '10px 0', color: '#666' }}>
+                Click to select {modalType === 'VideoFile' ? 'a video file' : 'an image'}
+              </p>
+              <input 
+                ref={fileInputRef}
+                type="file" 
+                name={modalType === 'VideoFile' ? "VideoFile" : "file"}
+                accept={modalType === 'VideoFile' ? "video/*" : "image/*"} 
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+            </div>
+
+            {selectedFile && (
+              <div style={{ 
+                padding: '10px',
+                backgroundColor: '#f0f0f0',
+                borderRadius: '4px'
+              }}>
+                <p style={{ margin: 0, color: '#c71b29' }}>
+                  <strong style={{ color: '#666' }}><span>Selected File:</span></strong> {selectedFile.name}
+                  <br />
+                  <strong style={{ color: '#666' }}><span>Size:</span> </strong>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+            )}
+
+            {currentImage && modalType !== 'VideoFile' && (
+              <div style={{ textAlign: 'center' }}>
+                <h4 style={{ marginBottom: '10px' }}>Current:</h4>
+                <img 
+                  src={currentImage} 
+                  alt="Current" 
+                  style={{ 
+                    maxWidth: '100%',
+                    maxHeight: '200px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }} 
+                />
+              </div>
+            )}
+
+            {currentImage && modalType === 'VideoFile' && (
+              <div style={{ textAlign: 'center' }}>
+                <h4 style={{ marginBottom: '10px' }}>Current Video:</h4>
+                <video 
+                  controls 
+                  style={{ 
+                    maxWidth: '100%',
+                    maxHeight: '200px',
+                    borderRadius: '4px',
+                    border: '1px solid #ddd'
+                  }}
+                >
+                  <source src={currentImage} type="video/mp4" />
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              marginTop: '20px'
+            }}>
+              <button
+                onClick={closeModal}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '4px',
+                  border: '1px solid #ccc',
+                  background: 'white',
+                  cursor: 'pointer'
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={!selectedFile}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: selectedFile ? '#c71b29' : '#ccc',
+                  color: 'white',
+                  cursor: selectedFile ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   };
-  
 
   return (
     <>
-      <Topnav />
-      <Header />
+      {/* <Topnav />
+      <Header /> */}
       <Container>
-        <Card>
-          <Title>Agent Models By <span1>{userDetails?.username}</span1></Title>
+        <div className="profile-card">
+          {/* <Title>Agent Models By <span1>{userDetails?.username}</span1></Title> */}
+     
+                <SubTitle>MODELS ({count})</SubTitle>
+
+          
           {agentModels.map(model => (
-            <FullSection key={model.id}>
-              <Profile>
-                <LeftSection>
-                  <ProfilePic src={`${API_URL}${model?.Poster?.url || ''}`} />
-                </LeftSection>
-                <RightSection>
-                  {editStates[model.id] ? (
-                    <>
-                      <FormGroup>
-                        <label>Name</label>
-                        <Input name="Name" value={formStates[model.id]?.Name} onChange={(e) => handleInputChange(e, model.id)} />
-                      </FormGroup>
-                      <Row>
-                        <FormGroup><label>Height</label><Input name="Height" value={formStates[model.id]?.Height} onChange={(e) => handleInputChange(e, model.id)} /></FormGroup>
-                        <FormGroup><label>Weight</label><Input name="Weight" value={formStates[model.id]?.Weight} onChange={(e) => handleInputChange(e, model.id)} /></FormGroup>
-                      </Row>
-                      <Row>
-                        <FormGroup><label>Eye Color</label><Input name="EyeColor" value={formStates[model.id]?.EyeColor} onChange={(e) => handleInputChange(e, model.id)} /></FormGroup>
-                        <FormGroup><label>Hair Color</label><Input name="HairColor" value={formStates[model.id]?.HairColor} onChange={(e) => handleInputChange(e, model.id)} /></FormGroup>
-                      </Row>
-                      <FormGroup>
-                        <label>Description</label>
-                        <TextArea name="Description" rows={4} value={formStates[model.id]?.Description} onChange={(e) => handleInputChange(e, model.id)} />
-                      </FormGroup>
-                      <Button onClick={() => saveModel(model.id)}>Save</Button>
-                    </>
-                  ) : (
-                    <>
-                      <ModelName>{model?.Name}</ModelName>
-                      <p>{model?.Description}</p>
-                      <p>Height: {model?.Height} | Weight: {model?.Weight}</p>
-                      <p>Hair Color: {model?.HairColor}</p>
-                      <p>Eye Color: {model?.EyeColor}</p>
-                      <Button onClick={() => toggleEdit(model?.id)}>Edit</Button>
-                    </>
-                  )}
-                </RightSection>
-              </Profile>
-
-              <RightContainer>
-                <RightUp>
-                  <Section>
-                    <SectionTitle>Poster</SectionTitle>
-                    <GalleryItem>
-                      <GalleryImage src={model?.Poster?.url ? `${API_URL}${model?.Poster?.url}` : 'https://api.moviemads.com/uploads/empty_image_dd70f20899.jpg'} />
-                      <EditButton onClick={() => openModal('Poster', model?.Poster?.id, `${API_URL}${model?.Poster?.url}`)}>Change Poster</EditButton>
-                    </GalleryItem>
-                  </Section>
-                  <Section>
-                    <SectionTitle>Thumbnail</SectionTitle>
-                    <GalleryItem>
-                      <GalleryImage src={model?.Thumbnail?.url ? `${API_URL}${model?.Thumbnail?.url}` : 'https://api.moviemads.com/uploads/empty_image_dd70f20899.jpg'} />
-                      <EditButton onClick={() => openModal('Thumbnail', model?.Thumbnail?.id, `${API_URL}${model?.Thumbnail?.url}`)}>Change Thumbnail</EditButton>
-                    </GalleryItem>
-                  </Section>
-                </RightUp>
-
-                <Section>
-                  <SectionTitle>Images</SectionTitle>
-                  <GalleryRow>
-                    {[...Array(5)].map((_, index) => {
-                      const image = model?.Images?.[index];
-                      return (
-                        <GalleryItem key={index}>
-                          <GalleryImage
-                            src={image ? `${API_URL}${image.url}` : 'https://api.moviemads.com/uploads/empty_image_dd70f20899.jpg'}
+            <div key={model.id} className="model-section">
+              <div className='profile'>
+                <div className="profile-info left">
+                  <div className="profile-pic">
+                    <img src={`${API_URL}${model?.Poster?.url || ''}`} alt="Profile" />
+                  </div>
+                  <div className="profile-details">
+                    {editingModelId !== model.id ? (
+                      <>
+                        <h2 className="name">{model?.Name}</h2>
+                        <p className="bio"><span>H: {model?.Height}cm</span>{" "}|{" "}<span>W: {model?.Weight}kg</span></p>
+                        <p className="bio"><span>Eye Color: {model?.EyeColor}</span>{" "}|{" "}<span>Hair Color: {model?.HairColor}</span></p>
+                        <p className="bio">{model?.Description}</p>
+                        <button className="edit-button" onClick={() => toggleEditing(model.id)}>
+                          Edit Profile
+                        </button>
+                      </>
+                    ) : (
+                      <div className="edit-form">
+                        <div className="form-group">
+                          <label>Name</label>
+                          <input
+                            type="text"
+                            name="Name"
+                            value={formData[model.id]?.Name || ''}
+                            onChange={(e) => handleInputChange(e, model.id)}
                           />
-                          <EditButton onClick={() => openModal('Images', model.id, image ? `${API_URL}${image.url}` : '', image?.id)}>
-                            Change Image
-                          </EditButton>
-                        </GalleryItem>
-                      );
-                    })}
-                  </GalleryRow>
-                </Section>
-              </RightContainer>
-            </FullSection>
+                        </div>
+                        <div className="TwoField">
+                          <div className="form-group">
+                            <label>Height</label>
+                            <input
+                              type="text"
+                              name="Height"
+                              value={formData[model.id]?.Height || ''}
+                              onChange={(e) => handleInputChange(e, model.id)}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Weight</label>
+                            <input
+                              type="text"
+                              name="Weight"
+                              value={formData[model.id]?.Weight || ''}
+                              onChange={(e) => handleInputChange(e, model.id)}
+                            />
+                          </div>
+                        </div>
+                        <div className="TwoField">
+                          <div className="form-group">
+                            <label>Eye Color</label>
+                            <input
+                              type="text"
+                              name="EyeColor"
+                              value={formData[model.id]?.EyeColor || ''}
+                              onChange={(e) => handleInputChange(e, model.id)}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>Hair Color</label>
+                            <input
+                              type="text"
+                              name="HairColor"
+                              value={formData[model.id]?.HairColor || ''}
+                              onChange={(e) => handleInputChange(e, model.id)}
+                            />
+                          </div>
+                        </div>
+                        <div className="form-group">
+                          <label>Description</label>
+                          <textarea
+                            type="text"
+                            name="Description"
+                            rows={4}
+                            value={formData[model.id]?.Description || ''}
+                            onChange={(e) => handleInputChange(e, model.id)}
+                          />
+                        </div>
+                        <button className="save-button" onClick={() => saveModel(model.id)}>
+                          Save
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className='right'>
+                  <div className='right-up'>
+                    <div className='r1'>
+                      <h2 className="gallery-title">Poster</h2>
+                      <div className="gallery-item gallery1">
+                        <img 
+                          src={model?.Poster?.url ? `${API_URL}${model.Poster.url}` : 'https://api.moviemads.com/uploads/empty_image_dd70f20899.jpg'} 
+                          alt="Model Poster" 
+                          className="gallery-image" 
+                        />
+                        <button 
+                          className="edit-Pic" 
+                          onClick={() => openModal('Poster', model.id, model?.Poster?.url ? `${API_URL}${model.Poster.url}` : '')}
+                        >
+                          Change Poster
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className='r1'>
+                      <h2 className="gallery-title">Thumbnail</h2>
+                      <div className="gallery-item gallery1">
+                        <img 
+                          src={model?.Thumbnail?.url ? `${API_URL}${model.Thumbnail.url}` : 'https://api.moviemads.com/uploads/empty_image_dd70f20899.jpg'} 
+                          alt="Model Thumbnail" 
+                          className="gallery-image" 
+                        />
+                        <button 
+                          className="edit-Pic" 
+                          onClick={() => openModal('Thumbnail', model.id, model?.Thumbnail?.url ? `${API_URL}${model.Thumbnail.url}` : '')}
+                        >
+                          Change Thumbnail
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className='r2'>
+                    <h2 className="gallery-title">Images</h2>
+                    <div className="gallery1">
+                      {[...Array(5)].map((_, index) => {
+                        const image = model?.Images?.[index];
+                        return (
+                          <div key={index} className="gallery-item">
+                            <img 
+                              src={image ? `${API_URL}${image.url}` : 'https://api.moviemads.com/uploads/empty_image_dd70f20899.jpg'} 
+                              alt={`Model ${index}`} 
+                              className="gallery-image" 
+                            />
+                            <button 
+                              className="edit-Pic" 
+                              onClick={() => openModal('Images', model.id, image ? `${API_URL}${image.url}` : '', image?.id)}
+                            >
+                              Change Image
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                  
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'start',
+                    gap: '16px',
+                    margin: '20px 0'
+                  }}>
+                    <h2 style={{
+                      fontSize: '1.5rem',
+                      fontWeight: '600',
+                      marginBottom: '10px',
+                      textAlign: 'center'
+                    }}>Video</h2>
+                    
+                    <div style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'start',
+                      gap: '16px',
+                      width: '100%'
+                    }}>
+                      <video 
+                        style={{ 
+                          width: '100%',
+                          maxWidth: '500px',
+                          height: '300px',
+                          borderRadius: '8px',
+                          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                          display: model?.VideoFile?.[0] ? 'block' : 'none'
+                        }} 
+                        controls 
+                        autoPlay 
+                        loop
+                        key={model?.VideoFile?.[0]?.id || 'no-video'}
+                      >
+                        {model?.VideoFile?.[0] && (
+                          <source
+                            src={`${API_URL}${model.VideoFile[0].url}?t=${new Date().getTime()}`}
+                            type="video/mp4"
+                          />
+                        )}
+                        Your browser does not support the video tag.
+                      </video>
+                      
+                      {!model?.VideoFile?.[0] && (
+                        <p style={{ color: '#666' }}>No video available</p>
+                      )}
+                      
+                      <button 
+                        style={{
+                          padding: '8px 16px',
+                          backgroundColor: '#ff0015',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem'
+                        }}
+                        onClick={() => openModal('VideoFile', model.id, model?.VideoFile?.[0]?.url ? `${API_URL}${model.VideoFile[0].url}` : '')}
+                      >
+                        {model?.VideoFile?.[0] ? 'Change Video' : 'Upload Video'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           ))}
-        </Card>
+       
+
+
+        </div>
+
+   
+        
+        {isModalOpen && (
+          <ProfileModal closeModal={() => setIsModalOpen(false)} />
+        )}
       </Container>
-      {/* {console.log(multipleImage,'multipleimage') } */}
-      {isModalOpen && (
-        <ProfileModal
-          closeModal={() => setIsModalOpen(false)}
-          handleFileChange={handleFileChange}
-          handleImageUpload={() => {}}
-          currentImage={multipleImage}
-          handleSvgClick={handleSvgClick}
-          fileInputRef={fileInputRef}
-        />
-      )}
-
-      <Footer />
-
       
+      {/* <Footer /> */}
     </>
   );
 };
 
 export default AgentEditModel;
-
-
-export const Container = styled.main`
-  min-height: calc(100vh - 70px);
-  padding: 0 calc(3.5vw + 5px);
-  position: relative;
-  padding-bottom: 50px;
-  overflow-x: hidden;
-`;
-
-export const Card = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding: 40px;
-  gap:4rem;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  margin: 2rem auto;
-  @media (max-width: 768px) {
-    padding: 20px;
-  }
-  `;
-
-
-  export const FullSection = styled.div`
-  display:flex;
-  flex-direction:row;
-  width:100%;
-  @media (max-width: 768px) {
-    flex-direction:column;
-    border-bottom:1px solid #eee
-  }
-`;
-
 export const Title = styled.h1`
   font-size: 32px;
   font-weight: 700;
@@ -348,248 +603,27 @@ export const Title = styled.h1`
     color:red;
   }
 `;
-
-export const Profile = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-  align-items: flex-start;
-  margin-bottom: 40px;
-  padding-right: 30px;
-  border-right: 1px solid #eee;
-  width: 25%;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-    width:100%;
-    align-items: center;
-    border-right: none;
-    padding-right: 0px;
-  }
-`;
-
-export const LeftSection = styled.div`
-  flex: 0 0 200px;
-
-  @media (max-width: 768px) {
-    width: 100%;
-    text-align: center;
-  }
-`;
-
-export const ProfilePic = styled.img`
-  width: 180px;
-  height: 180px;
-  border-radius: 12px;
-  object-fit: cover;
-  box-shadow: 0 0 8px rgba(0,0,0,0.1);
-
-  @media (max-width: 768px) {
-    margin: 0 auto;
-  }
-`;
-
-export const RightSection = styled.div`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-`;
-
-export const FormGroup = styled.div`
-  margin-bottom: 20px;
-
-  label {
-    display: block;
-    font-weight: 600;
-    margin-bottom: 6px;
-  }
-`;
-
-export const Input = styled.input`
-  width: 100%;
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-`;
-
-export const TextArea = styled.textarea`
-  width: 100%;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  font-size: 14px;
-  resize: vertical;
-`;
-
-export const Row = styled.div`
-  display: flex;
-  gap: 20px;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-export const Button = styled.button`
-  background-color: #ff0015;
-  color: #fff;
-  border: none;
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 10px;
-  transition: background-color 0.2s ease-in-out;
-
-  &:hover {
-    background-color: #80000b;
-  }
-`;
-
-export const ModelName = styled.h2`
+const SubTitle = styled.h2`
   font-size: 24px;
-  font-weight: bold;
-  margin-bottom: 12px;
-`;
-
-export const RightContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  padding: 20px;
-  width:75%;
-  gap: 30px;
-  @media (max-width: 768px) {
-    flex-direction: column;
-    width:100%;
-  }
-`;
-
-export const RightUp = styled.div`
-  display: flex;
-  justify-content: space-between;
-  gap: 20px;
-  flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
-`;
-
-export const Section = styled.div`
-  flex: 1;
-  min-width: 250px;
-  justify-content:center;
-    align-items:center;
-`;
-
-export const SectionTitle = styled.h2`
-  font-size: 1.5rem;
-  margin-bottom: 10px;
   font-weight: 600;
+  margin: 20px 0;
+  color: #333;
+  border-bottom: 2px solid #c71b29;
+  padding-bottom: 8px;
 `;
-
-export const GalleryRow = styled.div`
-  display: flex;
-  flex-direction:row;
-  gap: 10px;
-  @media (max-width: 768px) {
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-  }
-`;
-
-export const GalleryItem = styled.div`
-  display:flex;
-  flex-direction:column;
-  justify-content:center;
-  align-items:center;
-  border-radius: 8px;
-  text-align: center;
-  width: 100%;
-`;
-
-export const GalleryImage = styled.img`
-  width:100%;
-  height: 200px;
-  object-fit:contain;
-  border-radius: 6px;
-  margin-bottom: 10px;
-`;
-
-export const EditButton = styled.button`
-  background-color: #ff0015;
-  color: white;
-  border: none;
-  padding: 8px 12px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.9rem;
-  transition: background 0.2s ease-in-out;
-
-  &:hover {
-    background-color: #80000b;
-  }
-`;
-
-const ModalOverlay = styled.div`
-  position: fixed;
-  top: 0; left: 0;
-  width: 100vw; height: 100vh;
-  background-color: rgba(0,0,0,0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 999;
-`;
-
-const ModalContent = styled.div`
-  background: #404040;
-  padding: 20px;
-  width: 400px;
-  border-radius: 8px;
+const Container = styled.main`
+  min-height: calc(100vh - 70px);
+  padding: 0 calc(3.5vw + 5px);
   position: relative;
-`;
-
-const ModalHeader = styled.div`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 15px;
-
-  h2 {
-    margin: 0;
+  padding-bottom: 50px;
+  overflow-x: hidden;
+  &:before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
   }
-`;
-
-const CloseButton = styled.button`
-  font-size: 20px;
-  background: transparent;
-  color:white;
-  border: none;
-  cursor: pointer;
-`;
-
-const ModalBody = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const UploadLabel = styled.label`
-  font-weight: bold;
-  margin: 10px 0;
-`;
-
-const HiddenInput = styled.input`
-  display: none;
-`;
-
-const PreviewImage = styled.img`
-  width: 100%;
-  max-height: 200px;
-  object-fit: contain;
-  margin-bottom: 20px;
-  border-radius: 8px;
 `;

@@ -23,25 +23,30 @@ function GoogleAuthCallback() {
         'Access-Control-Allow-Origin': '*',
       }
     })
-    .then((res) => res.data)
-    .then((data) => {
-      setAuth(data);
-      localStorage.setItem('User', JSON.stringify(data));
-      localStorage.setItem('UserId', data.user.id);
-      localStorage.setItem('EmailId', data.user.email);
-      localStorage.setItem('JwtToken', data.jwt);
+      .then((res) => res.data)
+      .then((data) => {
+        setAuth(data);
+        if (data.user.email === 'moviemadsindia@gmail.com') {
+  localStorage.setItem('IsAdmin', 'true');
+} else {
+  localStorage.setItem('IsAdmin', 'false');
+}
+        localStorage.setItem('User', JSON.stringify(data));
+        localStorage.setItem('UserId', data.user.id);
+        localStorage.setItem('EmailId', data.user.email);
+        localStorage.setItem('JwtToken', data.jwt);
 
-      const redirectUrl = localStorage.getItem('redirect') || '/';
-      navigate(redirectUrl);
+        const redirectUrl = localStorage.getItem('redirect') || '/';
+        navigate(redirectUrl);
 
-      setTimeout(() => {
-        window.location.reload();
-      }, 2000);
-    })
-    .catch((error) => {
-      console.error('Error during authentication', error);
-      navigate('/login');
-    });
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
+      })
+      .catch((error) => {
+        console.error('Error during authentication', error);
+        navigate('/login');
+      });
   }, [location, navigate]);
 
   return null;

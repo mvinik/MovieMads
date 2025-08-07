@@ -1,9 +1,9 @@
-import React, { useState,useEffect } from 'react';
-import { Steps, Form, Input,ConfigProvider, Button, Upload, message, Progress,Select,notification } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { Steps, Form, Input, ConfigProvider, Button, Upload, Space, Progress, Select, notification } from 'antd';
 import { LeftOutlined } from '@ant-design/icons';
 import { Checkbox } from 'antd';
-
-import {PlusOutlined } from '@ant-design/icons';
+import { message as antMessage } from 'antd';
+import { PlusOutlined } from '@ant-design/icons';
 
 // import {STRAPI_API_URL} from '../../constants.js';
 import './Model.css';
@@ -14,16 +14,17 @@ import Topnav from '../TopNav/Topnav';
 import Header from '../Header';
 const { Step } = Steps;
 const API_URL = process.env.REACT_APP_API_URL;
+const Token = localStorage.getItem("JwtToken");
 const USERID = localStorage.getItem('UserId');
 
 const AgentForm = () => {
-  
+
   const [token, setToken] = useState(localStorage.getItem("JwtToken"));
   const [currentStep, setCurrentStep] = useState(0);
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [ previewImage, setPreviewImage] = useState('');
+  const [previewImage, setPreviewImage] = useState('');
   const [refCode, setRefCode] = useState('');
   const [previewTitle, setPreviewTitle] = useState('');
   const [videoUpload, setVideoUpload] = useState(null);
@@ -52,15 +53,72 @@ const AgentForm = () => {
   const [fileSizeError2, setFileSizeError2] = useState(false);
   const [agentName, setAgentName] = useState("");
   const [agentNum, setAgentNum] = useState("");
-  const [price, setPrice] = useState(0);
+  const [price, setPrice] = useState(null);
   const [agentDetails, setAgentDetails] = useState(false);
+  const [coupon, setCoupon] = useState('');
+  const [finalPrice, setFinalPrice] = useState(null);
+  const [discount, setDiscount] = useState(0);
+  const [message, setMessage] = useState('');
+
   
+  const option1 = {
+    headers: {
+      'Authorization': `Bearer ${token}`
+    },
+  };
+
+
+
 
   const [uploadStatus, setUploadStatus] = useState({
     poster: false,
     thumbnail: false,
     images: false
   });
+
+
+  const getAmount = async () => {
+    try {
+      const res = await axios.get(`${API_URL}/api/price?populate=*`)
+      setPrice(res?.data?.data?.attributes?.AgentModelPrice);
+      console.log(res,'amount')
+    } catch (err) {
+      console.log(err)
+    }
+  }
+  useEffect(() => {
+    getAmount();
+  }, [])
+ 
+  useEffect(() => {
+  setFinalPrice(price);
+}, [price]);
+console.log('price:', price);
+console.log('finalPrice:', finalPrice);
+
+  const applyCoupon = async () => {
+    try {
+      const response = await axios.post(`${API_URL}/api/apply-coupon`, {
+        code: coupon,
+        originalPrice: price,
+      });
+
+      if (response.data.valid) {
+        setDiscount(response.data.discount);
+        setFinalPrice(response.data.finalPrice);
+        setMessage(`Coupon applied! ₹${response.data.discount} off`);
+      }
+    } catch (error) {
+       // Try to extract a string message, or fall back to a default
+    const errorMsg = error.response?.data?.error?.message || 'Invalid or expired coupon';
+    setMessage(errorMsg);
+      setDiscount(0);
+      setFinalPrice(price);
+    }
+  };
+
+
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     switch (name) {
@@ -92,7 +150,7 @@ const AgentForm = () => {
         setHeight(value);
         break;
       case "weight":
-        setWeight (value);
+        setWeight(value);
         break;
       case "instaLink":
         setInstaLink(value);
@@ -102,29 +160,29 @@ const AgentForm = () => {
     }
   };
 
-  const getAgent = async() =>{
-    try{
+  const getAgent = async () => {
+    try {
       const res = await axios.get(`${API_URL}/api/users/${localStorage.getItem('UserId')}?populate=*`)
-      setAgentDetails(res?.data?.agent_detail !==null);
+      setAgentDetails(res?.data?.agent_detail !== null);
       // console.log(res,agentDetails,'user details')
-    }catch(err){
+    } catch (err) {
       console.log(err)
     }
   }
-  useEffect(()=>{
+  useEffect(() => {
     getAgent();
-  },[])
+  }, [])
 
-  const UpdateAgent = async(e) =>{
-    try{
-      const res = await axios.post(`${API_URL}/api/agent-details`,{
-        data:{
-          AgentName:agentName,
-          AgentMobile:agentNum,
-          users_permissions_user:localStorage.getItem('UserId')
+  const UpdateAgent = async (e) => {
+    try {
+      const res = await axios.post(`${API_URL}/api/agent-details`, {
+        data: {
+          AgentName: agentName,
+          AgentMobile: agentNum,
+          users_permissions_user: localStorage.getItem('UserId')
         }
       })
-    }catch(err){
+    } catch (err) {
       console.log(err)
     }
   }
@@ -132,15 +190,15 @@ const AgentForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if(!agentDetails){
+    if (!agentDetails) {
       UpdateAgent();
     }
-    
+
     try {
       const values = await form.validateFields();
       setLoading(true);
       const response = await axios.post(`${API_URL}/api/agent-models`, {
-        data:{
+        data: {
           Name: values.fullName,
           Language: values.language,
           Category: values.category,
@@ -151,26 +209,26 @@ const AgentForm = () => {
           Weight: values.weight,
           Social: values.instaLink,
           users_permissions_user: localStorage.getItem('UserId'),
-          agentModel_ID:null,
-          publishedAt:null
+          agentModel_ID: null,
+          publishedAt: null
         }
       });
-      try{
-        const res = await axios.put(`${API_URL}/api/users/${USERID}`,{
-          "role":4
-        },option1)
+      try {
+        const res = await axios.put(`${API_URL}/api/users/${USERID}`, {
+          "role": 4
+        }, option1)
         // console.log(res,'role chnage')
-      }catch(err){
+      } catch (err) {
         console.log(err)
       }
       // console.log(response,'Agent model res')
       const AgentModelId = response.data.data.id;
       localStorage.setItem("AgentModelId", AgentModelId);
       // console.log(ModelId,'ModelId');
-      setCurrentStep(currentStep + 1);  
-      setLoading(false); 
-  } catch (err) {
-        setLoading(false);
+      setCurrentStep(currentStep + 1);
+      setLoading(false);
+    } catch (err) {
+      setLoading(false);
       if (err.response) {
         notification.error({
           message: 'Upload Error',
@@ -184,14 +242,14 @@ const AgentForm = () => {
           placement: 'top'
         });
       } else {
-          // Something happened in setting up the request that triggered an Error
-          notification.error({
-            message: 'Upload Error',
-            description: 'Fill all the required fields',
-            placement:'top'
-          });
+        // Something happened in setting up the request that triggered an Error
+        notification.error({
+          message: 'Upload Error',
+          description: 'Fill all the required fields',
+          placement: 'top'
+        });
       }
-  }  
+    }
   }
 
 
@@ -215,7 +273,7 @@ const AgentForm = () => {
   };
 
   const handleCancel = () => setPreviewOpen(false);
-  
+
   const handlePreview = async (file) => {
     if (!file.url && !file.preview) {
       file.preview = await new Promise((resolve) => {
@@ -236,130 +294,129 @@ const AgentForm = () => {
   const handleImageUpload = (file) => {
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // Example maximum file size for images (10MB)
     try {
-        // Check if a file is selected
-        if (!file || !file.file || !file.file.originFileObj) {
-            // Handle case where no file is selected
-            return;
-        }
-        // Check file size against the maximum allowed size
-        if (file.file.originFileObj.size > MAX_FILE_SIZE) {
+      // Check if a file is selected
+      if (!file || !file.file || !file.file.originFileObj) {
+        // Handle case where no file is selected
+        return;
+      }
+      // Check file size against the maximum allowed size
+      if (file.file.originFileObj.size > MAX_FILE_SIZE) {
 
-          return false // Prevent the file from being uploaded
-        }
-        // Proceed with setting the image upload state and updating progress
-        setImageUpload(file.file.originFileObj);
-        setUploadProgress(prevState => ({ ...prevState, poster: file.percent }));
-        setUploadStatus(prevStatus => ({ ...prevStatus, poster: true }));
-        return true;
+        return false // Prevent the file from being uploaded
+      }
+      // Proceed with setting the image upload state and updating progress
+      setImageUpload(file.file.originFileObj);
+      setUploadProgress(prevState => ({ ...prevState, poster: file.percent }));
+      setUploadStatus(prevStatus => ({ ...prevStatus, poster: true }));
+      return true;
     } catch (error) {
-        console.error('Error handling image upload:', error);
-        // Handle other errors, if any
+      console.error('Error handling image upload:', error);
+      // Handle other errors, if any
     }
-};
+  };
 
-const handleImageUpload1 =  (file) => {
+  const handleImageUpload1 = (file) => {
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // Example maximum file size for images (5MB)
     try {
-        // Check if a file is selected
-        if (!file || !file.file || !file.file.originFileObj) {
-            // Handle case where no file is selected
-            return;
-        }
-        // Check file size against the maximum allowed size
-        if (file.file.originFileObj.size > MAX_FILE_SIZE) {
-          return false; 
-        }
-
-        // Proceed with setting the image upload state and updating progress
-        setImageUpload1(file.file.originFileObj);
-        setUploadProgress(prevState => ({ ...prevState, thumbnail: file.percent }));
-        setUploadStatus(prevStatus => ({ ...prevStatus, thumbnail: true }));
-        return true;
-    } catch (error) {
-        console.error('Error handling image upload:', error);
-        // Handle other errors, if any
-    }
-};
-
-
-const handleImageUpload2 = ({fileList}) => {
-
-  try {
-    const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size for each image (5MB)
-    let valid = true;
-    fileList.forEach((file) => {
-      if (file.originFileObj.size > MAX_FILE_SIZE) {
-        valid = false;
+      // Check if a file is selected
+      if (!file || !file.file || !file.file.originFileObj) {
+        // Handle case where no file is selected
+        return;
       }
-    });
-    if (!valid) {
-      return false;
+      // Check file size against the maximum allowed size
+      if (file.file.originFileObj.size > MAX_FILE_SIZE) {
+        return false;
+      }
+
+      // Proceed with setting the image upload state and updating progress
+      setImageUpload1(file.file.originFileObj);
+      setUploadProgress(prevState => ({ ...prevState, thumbnail: file.percent }));
+      setUploadStatus(prevStatus => ({ ...prevStatus, thumbnail: true }));
+      return true;
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+      // Handle other errors, if any
     }
-    const arrayImages = fileList.map((file) => file.originFileObj);
-    setUploadProgress((prevState) => ({ ...prevState, images: fileList.length }));
-    setUploadStatus((prevStatus) => ({ ...prevStatus, images: fileList.length <= 5 }));
-    setImagesUpload(arrayImages);
-    // console.log(imagesUpload, 'Multiple images uploaded');
-    return true;
-  } catch (error) {
-    console.error('Error handling image upload:', error);
-  }
-};
+  };
+
+
+  const handleImageUpload2 = ({ fileList }) => {
+
+    try {
+      const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size for each image (5MB)
+      let valid = true;
+      fileList.forEach((file) => {
+        if (file.originFileObj.size > MAX_FILE_SIZE) {
+          valid = false;
+        }
+      });
+      if (!valid) {
+        return false;
+      }
+      const arrayImages = fileList.map((file) => file.originFileObj);
+      setUploadProgress((prevState) => ({ ...prevState, images: fileList.length }));
+      setUploadStatus((prevStatus) => ({ ...prevStatus, images: fileList.length <= 5 }));
+      setImagesUpload(arrayImages);
+      // console.log(imagesUpload, 'Multiple images uploaded');
+      return true;
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+    }
+  };
 
 
 
-useEffect(() => {
+  useEffect(() => {
     // Check if all files are uploaded
     if (uploadStatus.images && uploadStatus.thumbnail && uploadStatus.images) {
-        setButtonDisabled(false); // Enable button
+      setButtonDisabled(false); // Enable button
     } else {
-        setButtonDisabled(true); // Disable button
+      setButtonDisabled(true); // Disable button
     }
-}, [uploadStatus]);
+  }, [uploadStatus]);
 
-// console.log(buttonDisabled,'Button disabled');
+  // console.log(buttonDisabled,'Button disabled');
 
-const calculateOverallProgress = () => {
-  let progress = 0;
-  if (uploadStatus.poster) progress += 33;
-  if (uploadStatus.thumbnail) progress += 33;
-  if (uploadStatus.images) progress += 34;
-  return progress;
-};
-
-
+  const calculateOverallProgress = () => {
+    let progress = 0;
+    if (uploadStatus.poster) progress += 33;
+    if (uploadStatus.thumbnail) progress += 33;
+    if (uploadStatus.images) progress += 34;
+    return progress;
+  };
 
   const handleUpload = async () => {
     setUploading(true);
     setLoading(true);
+
     // Handle image uploads (assuming you have two imageUpload variables)
-    const imageFormDatas = [imageUpload,imageUpload1, ...imagesUpload];
-  // console.log(localStorage.getItem('ModelId'),'ModelId Poster');
+    const imageFormDatas = [imageUpload, imageUpload1, ...imagesUpload];
+    // console.log(localStorage.getItem('ModelId'),'ModelId Poster');
     for (let i = 0; i < imageFormDatas.length; i++) {
       const imageFormData = new FormData();
       imageFormData.append('files', imageFormDatas[i]);
-      imageFormData.append('refId',localStorage.getItem("AgentModelId"))
-      imageFormData.append('ref','api::agent-model.agent-model')
-   
-      
-      if(i==0){
-        imageFormData.append('field',"Poster")
+      imageFormData.append('refId', localStorage.getItem("AgentModelId"))
+      imageFormData.append('ref', 'api::agent-model.agent-model')
+
+
+      if (i == 0) {
+        imageFormData.append('field', "Poster")
         const newFileData = {
           alternativeText: localStorage.getItem("AgentModelId"),
           caption: 'Poster',
         };
         imageFormData.append('fileInfo', JSON.stringify(newFileData));
       }
-      else if(i==1){
-        imageFormData.append('field',"Thumbnail")
+      else if (i == 1) {
+        imageFormData.append('field', "Thumbnail")
         const newFileData = {
           alternativeText: localStorage.getItem("AgentModelId"),
           caption: 'Thumbnail',
         };
         imageFormData.append('fileInfo', JSON.stringify(newFileData));
       }
-      else{
-        imageFormData.append('field',"Images")
+      else {
+        imageFormData.append('field', "Images")
         const newFileData = {
           alternativeText: localStorage.getItem("AgentModelId"),
           caption: 'Images',
@@ -380,12 +437,99 @@ const calculateOverallProgress = () => {
         setLoading(false);
       } catch (error) {
         console.error(`Error uploading image ${i + 1}:`, error);
-      }finally {
-        setUploading(false); 
+      } finally {
+        setUploading(false);
         setLoading(false);
       }
     }
+
+  if(videoUpload){
+    
+    //  setUploading(true);
+    const videoSize = videoUpload.size;
+    let uploadedBytes = 0;
+
+    for (let i = 0; i <= 100; i += 10) {
+      setTimeout(() => {
+        const progress = Math.min(uploadedBytes / videoSize * 100, 100);
+        setUploadProgress({
+          poster: progress,
+          thumbnail: progress,
+          movie: progress,
+        });
+      }, i * 100);
+    }
+
+    const videoFormData = new FormData();
+    const newFileData = {
+      alternativeText: localStorage.getItem("formId"),
+      caption: 'video',
+    };
+    videoFormData.append('fileInfo', JSON.stringify(newFileData));
+    videoFormData.append('files', videoUpload);
+    videoFormData.append('refId', localStorage.getItem("AgentModelId"))
+    videoFormData.append('ref', 'api::agent-model.agent-model')
+    videoFormData.append('field', "VideoFile")
+
+    try {
+      const videoResponse = await axios.post(`${API_URL}/api/upload`, videoFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'Authorization': `Bearer ${Token}`,
+        },
+        onUploadProgress: progressEvent => {
+          uploadedBytes = progressEvent.loaded;
+          const progress = Math.min(uploadedBytes / videoSize * 100, 100);
+          setUploadProgress({
+            poster: progress,
+            thumbnail: progress,
+            movie: progress,
+          });
+        }
+      });
+    } catch (error) {
+      console.error('Error uploading video:', error);
+    }
+
+  }
   
+  };
+
+   const handleVideoUpload = (file) => {
+    const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200MB for reels
+
+    try {
+      const videoFile = file?.file?.originFileObj;
+
+      if (!videoFile) {
+        console.error('No file found.');
+        return;
+      }
+
+      // Check file size
+      if (videoFile.size > MAX_FILE_SIZE) {
+     antMessage.error('Reel size exceeds the maximum limit of 200MB.');
+        return;
+      }
+
+      // Check file type
+      const isMp4 = videoFile.type === 'video/mp4';
+      if (!isMp4) {
+      antMessage.error('Only MP4 format is allowed for reels.');
+        return;
+      }
+
+      // Set file state
+      setVideoUpload(videoFile);
+
+      // Optional progress (depends on actual upload implementation)
+      setUploadProgress(prev => ({ ...prev, movie: file.percent || 100 }));
+      setUploadStatus(prev => ({ ...prev, movie: true }));
+
+    } catch (error) {
+      console.error('Error handling video upload:', error);
+    antMessage.error('Something went wrong while uploading the reel.');
+    }
   };
 
 
@@ -408,12 +552,12 @@ const calculateOverallProgress = () => {
     </button>
   );
 
- 
-  
+
+
 
   const handleFinish = () => {
     // Your final submission logic goes here
-    message.success('Form submitted successfully!');
+   antMessage.success('Form submitted successfully!');
   };
 
 
@@ -423,555 +567,637 @@ const calculateOverallProgress = () => {
 
 
 
-  const option1 = {
-    headers: {
-    'Authorization':`Bearer ${token}`
-    },
-    };
 
 
 
-    
-  const getAmount = async() =>{
-    try{
-      const res = await axios.get(`${API_URL}/api/price?populate=*`)
-      setPrice(res?.data?.data?.attributes?.AgentModelPrice);
-      // console.log(res,'amount')
-    }catch(err){
-      console.log(err)
-    }
+  const handlePayment = async (e) => {
+    e.preventDefault();
+    // Validate finalPrice is correct
+  if (finalPrice <= 0) {
+    antMessage.error('Invalid payment amount');
+    return;
   }
-  useEffect(()=>{
-    getAmount();
-  },[])
 
-    const handlePayment = async (e) => {
-      e.preventDefault();
-      try {
-        // Get Razorpay key
-        const keyResponse = await axios.get(`${API_URL}/api/razorpay`, option1);
-        const keyId = keyResponse.data.data.attributes.keyId;
-        const key_secret = keyResponse.data.data.attributes.keySecret;
-        // console.log(keyResponse,'keyResponse')
-        // Create order
-        const orderResponse = await axios.post(`${API_URL}/api/contests/${price}/create-order`, {}, option1);
-        const order = orderResponse.data;
-        // console.log(orderResponse,'Order response')
-        // Razorpay options
-        const options = {
-          key: keyId,
-          key_secret:key_secret,
-          amount: order.price,
-          currency: "INR",
-          order_id: order.id,
-          name: "MovieMads",
-          config: {
-            display: {
-              blocks: {
-                banks: {
-                  name: 'All payment methods',
-                  instruments: [
-                    { method: 'upi' },
-                    { method: 'card' },
-                    { method: 'wallet' },
-                    { method: 'netbanking' },
-                  ],
-                },
-              },
-              sequence: ['block.banks'],
-              preferences: {
-                show_default_blocks: false
+    try {
+      // Get Razorpay key
+      const keyResponse = await axios.get(`${API_URL}/api/razorpay`, option1);
+      const keyId = keyResponse.data.data.attributes.keyId;
+      const key_secret = keyResponse.data.data.attributes.keySecret;
+      // console.log(keyResponse,'keyResponse')
+      // Create order
+      const orderResponse = await axios.post(`${API_URL}/api/contests/${finalPrice}/create-order`, {}, option1);
+      const order = orderResponse.data;
+      // console.log(orderResponse,'Order response')
+      // Razorpay options
+      const options = {
+        key: keyId,
+        key_secret: key_secret,
+        amount: order.price,
+        currency: "INR",
+        order_id: order.id,
+        name: "MovieMads",
+        config: {
+          display: {
+            blocks: {
+              banks: {
+                name: 'All payment methods',
+                instruments: [
+                  { method: 'upi' },
+                  { method: 'card' },
+                  { method: 'wallet' },
+                  { method: 'netbanking' },
+                ],
               },
             },
+            sequence: ['block.banks'],
+            preferences: {
+              show_default_blocks: false
+            },
           },
-          handler: async function (Paymentresponse) {
-            message.info('Please do not refresh the page');
-            try {
-              const paymentResponse = await axios.post(`${API_URL}/api/agent-models/${localStorage.getItem('AgentModelId')}/${Paymentresponse.razorpay_payment_id}/payment`, {}, option1);
-              handleFinish();  // Make sure handleFinish is defined and handles any async operations
-              // console.log(paymentResponse, 'payment response');
-              window.location.href = "/agentModelForm";
-            } catch (error) {
-              console.error('Error in payment handler:', error);
-            }
-          },
-        };
-    
-        // Open Razorpay payment interface
-        const pay = new window.Razorpay(options);
-        pay.open();
-      } catch (error) {
-        console.error('Error in handlePayment:', error);
-      }
-    };
-    
+        },
+        handler: async function (Paymentresponse) {
+         antMessage.info('Please do not refresh the page');
+          try {
+            const paymentResponse = await axios.post(`${API_URL}/api/agent-models/${localStorage.getItem('AgentModelId')}/${Paymentresponse.razorpay_payment_id}/payment`, {}, option1);
+            handleFinish();  // Make sure handleFinish is defined and handles any async operations
+            // console.log(paymentResponse, 'payment response');
+            window.location.href = "/agentModelForm";
+          } catch (error) {
+            console.error('Error in payment handler:', error);
+          }
+        },
+      };
+
+      // Open Razorpay payment interface
+      const pay = new window.Razorpay(options);
+      pay.open();
+    } catch (error) {
+      console.error('Error in handlePayment:', error);
+    }
+  };
+
 
   return (
     <>
-    <Topnav/>
-    <Header/>
-    <div className="container">
-      <div>
-      <h1 className='contest-heading'>Agent Model form <p style={{fontSize:'1.5rem', padding:'0',margin:'0'}}>(Entry fee of <p className='strikeOut'>Rs.999</p> Now Rs.{price} only)</p> </h1>
-      </div>
+      <Topnav />
+      <Header />
+      <div className="container">
+        <div>
+          <h1 className='contest-heading'>Agent Model form <p style={{ fontSize: '1.5rem', padding: '0', margin: '0' }}>(Entry fee of <p className='strikeOut'>Rs.999</p> Now Rs.{discount > 0 ? (<>{finalPrice}</>) : (<>{price}</>)} only)</p> </h1>
+        </div>
 
-     {loading?(
-       <div class="hourglassBackground">
-       <div class="hourglassContainer">
-         <div class="hourglassCurves"></div>
-         <div class="hourglassCapTop"></div>
-         <div class="hourglassGlassTop"></div>
-         <div class="hourglassSand"></div>
-         <div class="hourglassSandStream"></div>
-         <div class="hourglassCapBottom"></div>
-         <div class="hourglassGlass"></div>
-       </div>
-     </div>
-     ):(
-     <div className="steps-container">
-      <ConfigProvider
-      theme={{
-        token:{
-          colorPrimary: '#fba010',
-          colorText: '#ffffff',
-          colorIcon: '#ffffff',
-        },
-        components: {
-          Steps: {
-            colorPrimary: '#e50914',
-            algorithm: true, 
-            colorText: '#ffffff',
-            colorTextTertiary: '#ffffff',
-            colorTextSecondary: '#ffffff',
-            navArrowColor: '#ffffff',
-          },
-          Button: {
-            colorPrimary: '#e50914',
-            algorithm: true, 
-            colorBgContainerDisabled: '#495057',
-          },
-          Select:{
-            optionSelectedBg: '#e50914',
-            selectorBg: '#495057',
-            colorText: '#ffffff',
-            colorPrimary: '#fba010',
-            optionColor: '#212529',
-            colorBgElevated: '#212529',
-            colorBorder: '#495057',
-            borderRadiusLG: 0,
-          },
-          Form: {
-            colorPrimary: '#ffffff',
-            colorText: '#ffffff',
-            colorTextTertiary: '#ffffff',
-            colorTextSecondary: '#ffffff',
-            colorFillSecondary: '#ffffff',
-            algorithm: true,
-            labelColor: '#ffffff',
-          },
-          Typography: {
-           colorPrimary: '#ffffff',
-          },
-          Upload:{
-            colorText: '#ffffff',
-            colorIcon: '#ffffff',
-            colorPrimary: '#e50914',
-            colorFillAlter: 'rgba(251, 161, 16, 0.6)',
-            actionsColor: '#ffffff',
-          },
-          DatePicker:{
-            activeBg: '#212529',
-            colorBgContainer: '#495057',
-            colorText: '#ffffff',
-            colorBgElevated: '#212529',
-            colorPrimary: '#e50914',
-            colorBorder: '#495057',
-            borderRadius: 0,
-          },
-          Progress:{
-            defaultColor: '#fba010',
-            colorSuccess: '#e50914',
-            colorFillSecondary:'#303030',
-            fontSize: '36px',
-          },
-          TimePicker:{
-            colorBgContainer: '#495057',
-            colorText: '#ffffff',
-            colorBgElevated: '#212529',
-            colorPrimary: '#e50914',
-            colorBorder: '#495057',
-          },
-          Notification:{
-            colorBgElevated: '#212529',
+        {/* <div>
+  <h1 className="contest-heading">Agent Model Form
+  <div style={{ fontSize: '1.5rem', padding: 0, margin: 0 }}>
+    (Entry fee of <p className="strikeOut">Rs.999</p> Now{' '}
+    {discount > 0 ? (
 
-          },
-          Input: {
-            colorBgContainer: '#495057',
-            colorPrimary: '#fba010',
-            algorithm: true,
-            colorText: '#ffffff',
-            colorBorder: '#495057',
-            borderRadius: 0,
-          }
-        },
-      }}
-    >
-      <Steps current={currentStep}>
         
-        <Step title="Details" />
-        <Step title="Upload" />
-        <Step title="Payment" />
-      </Steps>
-      <div style={{ marginTop: 30 , color:"white"}}>
-        {currentStep === 0 && (
-          <>
+        <p style={{ color: 'green', fontWeight: 'bold' }}>
+          Rs.{finalPrice} only
+        </p>
+     
+    ) : (
+      <>Rs.{price} only</>
+    )}
+    )
+  </div>
+  </h1>
+</div> */}
 
-          {!agentDetails && 
-          <div>
-            <h2>Agent Details :</h2>
-          <Form
-           layout="vertical"
-           size="large"
-           className="form-container"
-           >
-          <div  className='Two input'>
-            <Form.Item
-              label="Agent Name"
-              name="agentName"
-              rules={[{ required: true, message: 'Please Enter Your Name!' }]}
-              className="input-container"
-              // initialValue={yourName}
-              onChange={(e)=>setAgentName(e.target.value)}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="Agent Mobile Number"
-              name="mobile"
-              rules={[{ required: true, message: 'Please Enter Mobile Number!' },{pattern: /^[0-9]{10}$/, message: 'Please Enter Valid Mobile Number!' }]} 
-              className="input-container"
-              onChange={(e)=>setAgentNum(e.target.value)}
-            >
-              <Input />
-            </Form.Item>
-            {/* {console.log(agentName,agentNum,'agent details')} */}
-              </div>
-          </Form>
-          <h2>Model Details :</h2>
-          </div>
-          }
-          <Form 
-            form={form}
-            layout="vertical"
-            size="large"
-            className="form-container"
-          >
-            <div  className='Two input'>
-            <Form.Item
-              label="Model Name"
-              name="fullName"
-              rules={[{ required: true, message: 'Please Enter Your Name!' }]}
-              className="input-container"
-              // initialValue={yourName}
-              onChange={handleInputChange}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label="Known Languages (English,Tamil...etc)"
-              name="language"
-              rules={[{ required: true, message: 'Please Enter Your known Languages!' }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-             <Input />
-            </Form.Item>
-              </div>
-           
-            <div className='Two input'>
-            <Form.Item
-              label="Gender"
-              name="category"
-              rules={[{ required: true, message: 'Please Select a Category!' }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-             <Select>
-            <Select.Option value="Male">Male</Select.Option>
-            <Select.Option value="Female">Female</Select.Option>
-            <Select.Option value="Child Artist">Child Artist</Select.Option>
-          </Select>
-            </Form.Item>
-
-            <Form.Item
-              label="Hair Color"
-              name="hairColor"
-              rules={[{ required: true, message: 'Please Enter Hair Color!' }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-              <Input/>
-            </Form.Item>
-
-            <Form.Item
-              label="Eye Color"
-              name="eyeColor"
-              rules={[{ required: true, message: 'Please Enter Eye Color!' }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-              <Input />
-            </Form.Item>
-              </div>
-            <div className='Two input'>
-            <Form.Item
-              label="Describe Yourself (Max 200 words!)"
-              name="description"
-                rules={[
-              { required: true, message: 'Please describe about yourself!' },
-              { validator: validateWordCount }
-            ]}
-              className="input-container"
-              onChange={handleInputChange}
-              
-            >
-          <TextArea rows={6}   />
-            </Form.Item>
-            <div className="input-container">
-            <Form.Item
-              label="Height (In centimeters)"
-              name="height"
-              rules={[{ required: true, message: 'Please Enter your Height!' },{ 
-                pattern: /^(1[3-9][0-9]|[2-9][0-9]{2})$/, // matches 130-999 cm range
-                message: 'Please enter a valid height (130-999 cm)!'
-              }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-              <Input/>
-            </Form.Item>
-
-            <Form.Item
-              label="Weight (In kg)"
-              name="weight"
-              rules={[{ required: true, message: 'Please Enter Your Weight!' }, { 
-                pattern: /^(2[0-9]|[3-9][0-9]|1[0-9]{2}|2[0-9]{2}|300)$/, // matches 20-300 kg range
-                message: 'Please enter a valid weight (20-300 kg)!'
-              }]}
-              className="input-container"
-              onChange={handleInputChange}
-            >
-              <Input />
-            </Form.Item>
+        {loading ? (
+          <div class="hourglassBackground">
+            <div class="hourglassContainer">
+              <div class="hourglassCurves"></div>
+              <div class="hourglassCapTop"></div>
+              <div class="hourglassGlassTop"></div>
+              <div class="hourglassSand"></div>
+              <div class="hourglassSandStream"></div>
+              <div class="hourglassCapBottom"></div>
+              <div class="hourglassGlass"></div>
             </div>
-              </div>
-              {/* <div className="Two input"> */}
+          </div>
+        ) : (
+          <div className="steps-container">
+            <ConfigProvider
+              theme={{
+                token: {
+                  colorPrimary: '#fba010',
+                  colorText: '#ffffff',
+                  colorIcon: '#ffffff',
+                },
+                components: {
+                  Steps: {
+                    colorPrimary: '#e50914',
+                    algorithm: true,
+                    colorText: '#ffffff',
+                    colorTextTertiary: '#ffffff',
+                    colorTextSecondary: '#ffffff',
+                    navArrowColor: '#ffffff',
+                  },
+                  Button: {
+                    colorPrimary: '#e50914',
+                    algorithm: true,
+                    colorBgContainerDisabled: '#495057',
+                  },
+                  Select: {
+                    optionSelectedBg: '#e50914',
+                    selectorBg: '#495057',
+                    colorText: '#ffffff',
+                    colorPrimary: '#fba010',
+                    optionColor: '#212529',
+                    colorBgElevated: '#212529',
+                    colorBorder: '#495057',
+                    borderRadiusLG: 0,
+                  },
+                  Form: {
+                    colorPrimary: '#ffffff',
+                    colorText: '#ffffff',
+                    colorTextTertiary: '#ffffff',
+                    colorTextSecondary: '#ffffff',
+                    colorFillSecondary: '#ffffff',
+                    algorithm: true,
+                    labelColor: '#ffffff',
+                  },
+                  Typography: {
+                    colorPrimary: '#ffffff',
+                  },
+                  Upload: {
+                    colorText: '#ffffff',
+                    colorIcon: '#ffffff',
+                    colorPrimary: '#e50914',
+                    colorFillAlter: 'rgba(251, 161, 16, 0.6)',
+                    actionsColor: '#ffffff',
+                  },
+                  DatePicker: {
+                    activeBg: '#212529',
+                    colorBgContainer: '#495057',
+                    colorText: '#ffffff',
+                    colorBgElevated: '#212529',
+                    colorPrimary: '#e50914',
+                    colorBorder: '#495057',
+                    borderRadius: 0,
+                  },
+                  Progress: {
+                    defaultColor: '#fba010',
+                    colorSuccess: '#e50914',
+                    colorFillSecondary: '#303030',
+                    fontSize: '36px',
+                  },
+                  TimePicker: {
+                    colorBgContainer: '#495057',
+                    colorText: '#ffffff',
+                    colorBgElevated: '#212529',
+                    colorPrimary: '#e50914',
+                    colorBorder: '#495057',
+                  },
+                  Notification: {
+                    colorBgElevated: '#212529',
 
-            <Form.Item
-              label="Paste Your Instagram link"
-              name="instaLink"
-              rules={[{ required: true, message: 'Please Paste Your Instagram URL!' }]}
-              className="input-container"
-              onChange={handleInputChange}
+                  },
+                  Input: {
+                    colorBgContainer: '#495057',
+                    colorPrimary: '#fba010',
+                    algorithm: true,
+                    colorText: '#ffffff',
+                    colorBorder: '#495057',
+                    borderRadius: 0,
+                  }
+                },
+              }}
             >
-            <Input/>
-            </Form.Item>
+              <Steps current={currentStep}>
 
-            {/* <Form.Item
+                <Step title="Details" />
+                <Step title="Upload" />
+                <Step title="Payment" />
+              </Steps>
+              <div style={{ marginTop: 30, color: "white" }}>
+                {currentStep === 0 && (
+                  <>
+
+                    {!agentDetails &&
+                      <div>
+                        <h2>Agent Details :</h2>
+                        <Form
+                          layout="vertical"
+                          size="large"
+                          className="form-container"
+                        >
+                          <div className='Two input'>
+                            <Form.Item
+                              label="Agent Name"
+                              name="agentName"
+                              rules={[{ required: true, message: 'Please Enter Your Name!' }]}
+                              className="input-container"
+                              // initialValue={yourName}
+                              onChange={(e) => setAgentName(e.target.value)}
+                            >
+                              <Input />
+                            </Form.Item>
+                            <Form.Item
+                              label="Agent Mobile Number"
+                              name="mobile"
+                              rules={[{ required: true, message: 'Please Enter Mobile Number!' }, { pattern: /^[0-9]{10}$/, message: 'Please Enter Valid Mobile Number!' }]}
+                              className="input-container"
+                              onChange={(e) => setAgentNum(e.target.value)}
+                            >
+                              <Input />
+                            </Form.Item>
+                            {/* {console.log(agentName,agentNum,'agent details')} */}
+                          </div>
+                        </Form>
+                        <h2>Model Details :</h2>
+                      </div>
+                    }
+                    <Form
+                      form={form}
+                      layout="vertical"
+                      size="large"
+                      className="form-container"
+                    >
+                      <div className='Two input'>
+                        <Form.Item
+                          label="Model Name"
+                          name="fullName"
+                          rules={[{ required: true, message: 'Please Enter Your Name!' }]}
+                          className="input-container"
+                          // initialValue={yourName}
+                          onChange={handleInputChange}
+                        >
+                          <Input />
+                        </Form.Item>
+                        <Form.Item
+                          label="Known Languages (English,Tamil...etc)"
+                          name="language"
+                          rules={[{ required: true, message: 'Please Enter Your known Languages!' }]}
+                          className="input-container"
+                          onChange={handleInputChange}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </div>
+
+                      <div className='Two input'>
+                        <Form.Item
+                          label="Gender"
+                          name="category"
+                          rules={[{ required: true, message: 'Please Select a Category!' }]}
+                          className="input-container"
+                          onChange={handleInputChange}
+                        >
+                          <Select>
+                            <Select.Option value="Male">Male</Select.Option>
+                            <Select.Option value="Female">Female</Select.Option>
+                            <Select.Option value="ChildArtist">Child Artist</Select.Option>
+                          </Select>
+                        </Form.Item>
+
+                        <Form.Item
+                          label="Hair Color"
+                          name="hairColor"
+                          rules={[{ required: true, message: 'Please Enter Hair Color!' }]}
+                          className="input-container"
+                          onChange={handleInputChange}
+                        >
+                          <Input />
+                        </Form.Item>
+
+                        <Form.Item
+                          label="Eye Color"
+                          name="eyeColor"
+                          rules={[{ required: true, message: 'Please Enter Eye Color!' }]}
+                          className="input-container"
+                          onChange={handleInputChange}
+                        >
+                          <Input />
+                        </Form.Item>
+                      </div>
+                      <div className='Two input'>
+                        <Form.Item
+                          label="Describe Yourself (Max 200 words!)"
+                          name="description"
+                          rules={[
+                            { required: true, message: 'Please describe about yourself!' },
+                            { validator: validateWordCount }
+                          ]}
+                          className="input-container"
+                          onChange={handleInputChange}
+
+                        >
+                          <TextArea rows={6} />
+                        </Form.Item>
+                        <div className="input-container">
+                          <Form.Item
+                            label="Height (In centimeters)"
+                            name="height"
+                            rules={[{ required: true, message: 'Please Enter your Height!' }, {
+                              pattern: /^(1[3-9][0-9]|[2-9][0-9]{2})$/, // matches 130-999 cm range
+                              message: 'Please enter a valid height (130-999 cm)!'
+                            }]}
+                            className="input-container"
+                            onChange={handleInputChange}
+                          >
+                            <Input />
+                          </Form.Item>
+
+                          <Form.Item
+                            label="Weight (In kg)"
+                            name="weight"
+                            rules={[{ required: true, message: 'Please Enter Your Weight!' }, {
+                              pattern: /^(2[0-9]|[3-9][0-9]|1[0-9]{2}|2[0-9]{2}|300)$/, // matches 20-300 kg range
+                              message: 'Please enter a valid weight (20-300 kg)!'
+                            }]}
+                            className="input-container"
+                            onChange={handleInputChange}
+                          >
+                            <Input />
+                          </Form.Item>
+                        </div>
+                      </div>
+                      {/* <div className="Two input"> */}
+                      <div className='Two input'>
+
+                        <Form.Item
+                          label="Paste Your Instagram link"
+                          name="instaLink"
+                          rules={[{ required: true, message: 'Please Paste Your Instagram URL!' }]}
+                          className="input-container"
+                          onChange={handleInputChange}
+                        >
+                          <Input />
+                        </Form.Item>
+                      
+                              <Form.Item
               label="Referral Code"
               name="refcode"
               className="input-container"
               onChange={handleInputChange}
             >
             <Input/>
-            </Form.Item> */}
-            {/* </div> */}
-          
-            {/* Add other form fields here */}
-            <Form.Item>
-              <Button type="primary" htmlType="submit" onClick={handleSubmit}>
-                Next
-              </Button>
             </Form.Item>
-          </Form>
-          </>
-        )}
-        {currentStep === 1 && (
-          <Form>
-         <div >
-          <div className="upload-container">
-         <div style={{ marginBottom: '40px',textAlign: 'center',lineHeight: '5px' }}>
-          <h3>Upload Poster </h3>
-          <h4>( 500 x 750 px)</h4>
-          <Form.Item
-          name="poster"
-          rules={[{ required: true, message: 'Please Upload the Movie' }]}
-          className="input-container"
-        >
-         <Upload
-        listType="picture-card"
-        onPreview={handlePreview}
-        beforeUpload={(file) => {
-          const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size for each image (3MB)
-          if (file.size > MAX_FILE_SIZE) {
-            message.error('File size exceeds the maximum limit of 5MB.');
-            return Upload.LIST_IGNORE; // Prevent the file from being uploaded
-          }
-          return true;
-        }}
-        onChange={handleImageUpload}
-        maxCount={1}
-        accept="image/*"
+              <Form.Item
+                          label="Coupon Code"
+                          help={message}
+                          validateStatus={discount > 0 ? 'success' : message && 'error'}
+                        >
+                          <Space.Compact style={{ width: '100%' }}>
+                            <Input
+                              value={coupon}
+                              onChange={(e) => setCoupon(e.target.value)}
+                              placeholder="Enter coupon code"
+                              disabled={discount > 0}
+                            />
+                            <Button
+                              type="primary"
+                              onClick={applyCoupon}
+                              loading={loading}
+                              disabled={discount > 0}
+                            >
+                              {discount > 0 ? 'Applied' : 'Apply'}
+                            </Button>
+                          </Space.Compact>
+                        </Form.Item>
+                      </div>
+
+
        
-      >
-        {uploadButton}
-      </Upload>
-      </Form.Item>
-      {/* {fileSizeError && <p className='SizeError'>Image size exceeds the limit</p>} */}
-      <span >( Maximum 5MB )</span>
-      <Modal open={previewOpen} title={previewTitle} visible={previewVisible} footer={null} 
-      onCancel={handleCancel}
-      >
-        <img
-          alt="example"
-          style={{
-            width: '100%',
-          }}
-          src={previewImage}
-        />
-      </Modal >
-         </div>
-         <div style={{ marginBottom: '40px',textAlign: 'center',lineHeight: '5px' }}>
-          <h3>Upload Thumbnail</h3>
-          <h4>( 1280 x 720 px )</h4>
-          <Form.Item
-          name="thumbnail"
-          rules={[{ required: true, message: 'Please Upload the Movie' }]}
-          className="input-container"
-        >
-         <Upload
-        listType="picture-card"
-        onPreview={handlePreview}
-        beforeUpload={(file) => {
-          const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size for each image (3MB)
-          if (file.size > MAX_FILE_SIZE) {
-            message.error('File size exceeds the maximum limit of 5MB.');
-            return Upload.LIST_IGNORE; // Prevent the file from being uploaded
-          }
-          return true;
-        }}
-        onChange={handleImageUpload1}
-        maxCount={1}
-        accept="image/*"
-      >
-        {uploadButton}
-      </Upload>
-      </Form.Item>
-      {/* {fileSizeError1  && <p className='SizeError'>Image size exceeds the limit</p>} */}
-      <span >( Maximum 5MB )</span>
-      <Modal open={previewOpen} title={previewTitle} footer={null} 
-      onCancel={handleCancel}
-      visible={previewVisible}
-      >
-        <img
-          alt="example"
-          style={{
-            width: '100%',
-          }}
-          src={previewImage}
-        />
-      </Modal>
-         </div>
-         <div style={{ marginBottom: '40px',textAlign: 'center' , lineHeight: '5px' }}>
-          <h3>Upload Images</h3>
-          <h4>( Max 5 images )</h4>
-          <Form.Item
-          name="images"
-          rules={[{ required: true, message: 'Please Upload the Images' }]}
-          className="input-container"
-        >
-         <Upload
-        listType="picture-card"
-        onPreview={handlePreview}
-        onChange={handleImageUpload2}
-        beforeUpload={(file) => {
-          const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size for each image (3MB)
-          if (file.size > MAX_FILE_SIZE) {
-            message.error('File size exceeds the maximum limit of 3MB.');
-            return Upload.LIST_IGNORE; // Prevent the file from being uploaded
-          }
-          return true;
-        }}
-        multiple
-        maxCount={5}
-        accept="image/*"
-      >
-        {imagesUpload.length<5 && uploadButton}
-      </Upload>
-      </Form.Item>
-      {/* {fileSizeError2 && <p className='SizeError'>Image size exceeds the limit</p>} */}
-      <span >( Max 5MB Each)</span>
-         </div>
-         </div>
-         <Progress percent={calculateOverallProgress()} />
-         <div style={{ marginTop: 40 }}>
-           <Button onClick={prevStep}>
-             <LeftOutlined /> Previous
-           </Button>
-           <Button type="primary" disabled={ buttonDisabled}  style={{float: 'right'}} onClick={handleUpload } 
-               >
-             Next
-           </Button>
-         </div>
-       </div>
-       </Form>
-        )}
-        {currentStep === 2 && (
-          <div>
-            <div style={{ height: '500px', overflow: 'auto' }}>
-            <h2>Terms and Conditions for Model Application</h2>
-            <ol>
-              <li><strong style={{color:'#ff0015'}}>Categories</strong>: The contest is open to three categories of models: male, female, and child artist.</li>
-              <li><strong style={{color:'#ff0015'}}>Eligibility</strong>: Applicants must meet the age and other eligibility requirements specified for their respective category.</li>
-              <li><strong style={{color:'#ff0015'}}>Application Process</strong>: Applicants must complete the application form accurately and submit any required supporting materials along with the payment.</li>
-              <li><strong style={{color:'#ff0015'}}>Payment and Refunds</strong>: There is a non-refundable fee for submitting the application. No refunds will be issued after the payment is made.</li>
-              <li><strong style={{color:'#ff0015'}}>Profile Review</strong>: After payment, each application will be reviewed. Profiles will be published on the website if they meet the contest standards and criteria.</li>
-              <li><strong style={{color:'#ff0015'}}>Publication</strong>: Approved profiles will be published on the contest website, where they can be viewed by directors and other industry professionals.</li>
-              <li><strong style={{color:'#ff0015'}}>Selection Criteria</strong>: Selection and approval of profiles will be based on criteria set by the contest organizers, including but not limited to appearance, charisma, and suitability for modeling.</li>
-              <li><strong style={{color:'#ff0015'}}>Usage Rights</strong>: By applying, applicants grant the organizers the right to use their submitted photos and personal information for promotional and contest-related purposes.</li>
-              <li><strong style={{color:'#ff0015'}}>No Guarantee</strong>: Submission of an application and payment does not guarantee selection as a contest participant or publication of the profile.</li>
-              <li><strong style={{color:'#ff0015'}}>Facilitation of Connections</strong>: The organizers will facilitate connections between models and interested parties such as directors or others who wish to hire models from the published list.</li>
-              <li><strong style={{color:'#ff0015'}}>Model Release</strong>: Selected participants will be required to sign a model release form, granting the organizers permission to use their likeness in promotional materials.</li>
-              <li><strong style={{color:'#ff0015'}}>Indemnification</strong>: Applicants agree to indemnify the contest organizers against any legal claims arising from the use of their submitted materials.</li>
-              <li><strong style={{color:'#ff0015'}}>Termination</strong>: The organizers reserve the right to terminate the contest or disqualify participants at their discretion.</li>
-              <li><strong style={{color:'#ff0015'}}>Compliance with Laws</strong>: Applicants must comply with all local, state, and federal laws and regulations. Failure to comply may result in disqualification.</li>
-              <li><strong style={{color:'#ff0015'}}>Confidentiality</strong>: Applicants agree to keep all contest-related information confidential and not disclose any details to third parties without the organizer's consent.</li>
-              <li><strong style={{color:'#ff0015'}}>Data Protection</strong>: The organizers will handle all personal data in accordance with applicable data protection laws. Applicants have the right to access and request the correction or deletion of their personal data.</li>
-          </ol>
-      </div>
-       {/* Checkbox for agreement */}
-       <div style={{ marginTop: 10 }}>
-        <Checkbox checked={agreed} onChange={toggleAgreement}>
-          I agree to the terms and conditions
-        </Checkbox>
-      </div>
-            <div style={{ marginTop: 20 }}>
-              <Button onClick={prevStep}>
-                <LeftOutlined /> Previous
-              </Button>
-              <Button type="primary"  style={{float: 'right'}} onClick={handlePayment} disabled={!agreed}>
-                Pay
-              </Button>
-            </div>
+                      {/* </div> */}
+
+                      {/* Add other form fields here */}
+                      <Form.Item>
+                        <Button type="primary" htmlType="submit" onClick={handleSubmit}>
+                          Next
+                        </Button>
+                      </Form.Item>
+                    </Form>
+                  </>
+                )}
+                {currentStep === 1 && (
+                  <Form>
+                    <div >
+                      <div className="upload-container">
+                        <div style={{ marginBottom: '40px', textAlign: 'center', lineHeight: '5px' }}>
+                          <h3>Upload Poster </h3>
+                       <h4 style={{ marginBottom: '15px'}}>( 500 x 750 px)</h4>
+                          <Form.Item
+                             style={{justifyItems:'center'}}
+                            name="poster"
+                            rules={[{ required: true, message: 'Please Upload the Movie' }]}
+                            className="input-container"
+                          >
+                            <Upload
+                          
+                              listType="picture-card"
+                              onPreview={handlePreview}
+                              beforeUpload={(file) => {
+                                const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size for each image (3MB)
+                                if (file.size > MAX_FILE_SIZE) {
+                               antMessage.error('File size exceeds the maximum limit of 5MB.');
+                                  return Upload.LIST_IGNORE; // Prevent the file from being uploaded
+                                }
+                                return true;
+                              }}
+                              onChange={handleImageUpload}
+                              maxCount={1}
+                              accept="image/*"
+
+                            >
+                              {uploadButton}
+                            </Upload>
+                          </Form.Item>
+                          {/* {fileSizeError && <p className='SizeError'>Image size exceeds the limit</p>} */}
+                          <span >( Maximum 5MB )</span>
+                          <Modal open={previewOpen} title={previewTitle} visible={previewVisible} footer={null}
+                            onCancel={handleCancel}
+                          >
+                            <img
+                              alt="example"
+                              style={{
+                                width: '100%',
+                              }}
+                              src={previewImage}
+                            />
+                          </Modal >
+                        </div>
+                        <div style={{ marginBottom: '40px', textAlign: 'center', lineHeight: '5px' }}>
+                          <h3>Upload Thumbnail</h3>
+                           <h4 style={{ marginBottom: '15px'}}>( 1280 x 720 px )</h4>
+                          <Form.Item
+                            style={{justifyItems:'center'}}
+                            name="thumbnail"
+                            rules={[{ required: true, message: 'Please Upload the Movie' }]}
+                            className="input-container"
+                          >
+                            <Upload
+                              listType="picture-card"
+                              onPreview={handlePreview}
+                              beforeUpload={(file) => {
+                                const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size for each image (3MB)
+                                if (file.size > MAX_FILE_SIZE) {
+                           antMessage.error('File size exceeds the maximum limit of 5MB.');
+                                  return Upload.LIST_IGNORE; // Prevent the file from being uploaded
+                                }
+                                return true;
+                              }}
+                              onChange={handleImageUpload1}
+                              maxCount={1}
+                              accept="image/*"
+                            >
+                              {uploadButton}
+                            </Upload>
+                          </Form.Item>
+                          {/* {fileSizeError1  && <p className='SizeError'>Image size exceeds the limit</p>} */}
+                          <span >( Maximum 5MB )</span>
+                          <Modal open={previewOpen} title={previewTitle} footer={null}
+                            onCancel={handleCancel}
+                            visible={previewVisible}
+                          >
+                            <img
+                              alt="example"
+                              style={{
+                                width: '100%',
+                              }}
+                              src={previewImage}
+                            />
+                          </Modal>
+                        </div>
+                        <div style={{ marginBottom: '40px', textAlign: 'center', lineHeight: '5px' }}>
+                          <h3>Upload Images</h3>
+                              <h4 style={{ marginBottom: '15px'}}>( Max 5 images )</h4>
+                          <Form.Item
+                           style={{justifyItems:'center'}}
+                            name="images"
+                            rules={[{ required: true, message: 'Please Upload the Images' }]}
+                            className="input-container"
+                          >
+                            <Upload
+                              listType="picture-card"
+                              onPreview={handlePreview}
+                              onChange={handleImageUpload2}
+                              beforeUpload={(file) => {
+                                const MAX_FILE_SIZE = 5 * 1024 * 1024; // Maximum file size for each image (3MB)
+                                if (file.size > MAX_FILE_SIZE) {
+                                  message.error('File size exceeds the maximum limit of 3MB.');
+                                  return Upload.LIST_IGNORE; // Prevent the file from being uploaded
+                                }
+                                return true;
+                              }}
+                              multiple
+                              maxCount={5}
+                              accept="image/*"
+                            >
+                              {imagesUpload.length < 5 && uploadButton}
+                            </Upload>
+                          </Form.Item>
+                          {/* {fileSizeError2 && <p className='SizeError'>Image size exceeds the limit</p>} */}
+                          <span >( Max 5MB Each )</span>
+                        </div>
+ <div style={{ marginBottom: '40px', textAlign: 'center', lineHeight: '5px' }}>
+                          <h3>Upload Reel</h3>
+                          <h4 style={{ marginBottom: '15px'}}>(1080 x 1920 px)</h4>
+
+                          <Form.Item
+                           style={{justifyItems:'center'}}
+                            name="reel"
+                            rules={[{ required: false, message: 'Please upload the reel' }]}
+                            className="input-container"
+                          >
+                            <Upload
+                              listType="picture-card"
+                              onPreview={handlePreview}
+                              beforeUpload={(file) => {
+                                const MAX_FILE_SIZE = 200 * 1024 * 1024; // ~200MB
+                                if (file.size > MAX_FILE_SIZE) {
+                           antMessage.error('Reel size exceeds the limit of 200MB.');
+                                  return Upload.LIST_IGNORE;
+                                }
+
+                                const isMp4 = file.type === 'video/mp4';
+                                if (!isMp4) {
+                               antMessage.error('Only MP4 format is allowed for reels.');
+                                  return Upload.LIST_IGNORE;
+                                }
+
+                                return true;
+                              }}
+                              onChange={handleVideoUpload}
+                              maxCount={1}
+                              accept="video/mp4"
+                            >
+                              {uploadButton}
+                            </Upload>
+                          </Form.Item>
+
+                          {fileSizeError2 && (
+                            <p className="SizeError" style={{ color: 'red', marginBottom: '5px' }}>
+                              Reel size exceeds the limit
+                            </p>
+                          )}
+
+                          <span>( Maximum 200MB, MP4 only )</span>
+                        </div>
+
+                      </div>
+                      <Progress percent={calculateOverallProgress()} />
+                      <div style={{ marginTop: 40 }}>
+                        <Button onClick={prevStep}>
+                          <LeftOutlined /> Previous
+                        </Button>
+                        <Button type="primary" disabled={buttonDisabled} style={{ float: 'right' }} onClick={handleUpload}
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  </Form>
+                )}
+                {currentStep === 2 && (
+                  <div>
+                    <div style={{ height: '500px', overflow: 'auto' }}>
+                      <h2>Terms and Conditions for Model Application</h2>
+                      <ol>
+                        <li><strong style={{ color: '#ff0015' }}>Categories</strong>: The contest is open to three categories of models: male, female, and child artist.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Eligibility</strong>: Applicants must meet the age and other eligibility requirements specified for their respective category.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Application Process</strong>: Applicants must complete the application form accurately and submit any required supporting materials along with the payment.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Payment and Refunds</strong>: There is a non-refundable fee for submitting the application. No refunds will be issued after the payment is made.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Profile Review</strong>: After payment, each application will be reviewed. Profiles will be published on the website if they meet the contest standards and criteria.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Publication</strong>: Approved profiles will be published on the contest website, where they can be viewed by directors and other industry professionals.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Selection Criteria</strong>: Selection and approval of profiles will be based on criteria set by the contest organizers, including but not limited to appearance, charisma, and suitability for modeling.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Usage Rights</strong>: By applying, applicants grant the organizers the right to use their submitted photos and personal information for promotional and contest-related purposes.</li>
+                        <li><strong style={{ color: '#ff0015' }}>No Guarantee</strong>: Submission of an application and payment does not guarantee selection as a contest participant or publication of the profile.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Facilitation of Connections</strong>: The organizers will facilitate connections between models and interested parties such as directors or others who wish to hire models from the published list.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Model Release</strong>: Selected participants will be required to sign a model release form, granting the organizers permission to use their likeness in promotional materials.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Indemnification</strong>: Applicants agree to indemnify the contest organizers against any legal claims arising from the use of their submitted materials.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Termination</strong>: The organizers reserve the right to terminate the contest or disqualify participants at their discretion.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Compliance with Laws</strong>: Applicants must comply with all local, state, and federal laws and regulations. Failure to comply may result in disqualification.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Confidentiality</strong>: Applicants agree to keep all contest-related information confidential and not disclose any details to third parties without the organizer's consent.</li>
+                        <li><strong style={{ color: '#ff0015' }}>Data Protection</strong>: The organizers will handle all personal data in accordance with applicable data protection laws. Applicants have the right to access and request the correction or deletion of their personal data.</li>
+                      </ol>
+                    </div>
+                    {/* Checkbox for agreement */}
+                    <div style={{ marginTop: 10 }}>
+                      <Checkbox checked={agreed} onChange={toggleAgreement}>
+                        I agree to the terms and conditions
+                      </Checkbox>
+                    </div>
+                    <div style={{ marginTop: 20 }}>
+                      <Button onClick={prevStep}>
+                        <LeftOutlined /> Previous
+                      </Button>
+                      <Button type="primary" style={{ float: 'right' }} onClick={handlePayment} disabled={!agreed}>
+                        Pay
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+
+            </ConfigProvider>
           </div>
         )}
       </div>
-
-
-    </ConfigProvider>
-    </div>
-     )} 
-    </div>
     </>
   )
 }

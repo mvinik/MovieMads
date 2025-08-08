@@ -736,8 +736,9 @@ catch (err) {
                       <div className="upload-container">
                         <div style={{ marginBottom: '40px', textAlign: 'center', lineHeight: '5px' }}>
                           <h3>Upload Movie Poster </h3>
-                          <h4>( 500 x 750 px)</h4>
+                          <h4  style={{ marginBottom: '15px'}}>( 500 x 750 px)</h4>
                           <Form.Item
+                           style={{justifyItems:'center'}}
                             name="movie"
                             rules={[{ required: true, message: 'Please Upload the Movie' }]}
                             className="input-container"
@@ -776,8 +777,9 @@ catch (err) {
                         </div>
                         <div style={{ marginBottom: '40px', textAlign: 'center', lineHeight: '5px' }}>
                           <h3>Upload Thumbnail </h3>
-                          <h4>( 1280 x 720 px )</h4>
+                          <h4  style={{ marginBottom: '15px'}}>( 1280 x 720 px )</h4>
                           <Form.Item
+                           style={{justifyItems:'center'}}
                             name="movie"
                             rules={[{ required: true, message: 'Please Upload the Movie' }]}
                             className="input-container"
@@ -816,8 +818,9 @@ catch (err) {
                         </div>
                         <div style={{ marginBottom: '40px', textAlign: 'center', lineHeight: '5px' }}>
                           <h3>Upload Movie</h3>
-                          <h4>( 1280 x 720 px )</h4>
+                          <h4  style={{ marginBottom: '15px'}}>( 1280 x 720 px )</h4>
                           <Form.Item
+                           style={{justifyItems:'center'}}
                             name="movie"
                             rules={[{ required: true, message: 'Please Upload the Movie' }]}
                             className="input-container"

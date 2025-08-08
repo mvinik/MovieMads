@@ -109,9 +109,9 @@ function AppContent() {
             <Route path="/keywords" element={<Keywords />} />
             <Route path="/shortfilmplayer/:id" element={<ShortFilmPlayer />} />
             <Route path='/shortfilmupload' element={<ShortFilmUpload />} />
-               <Route path="/agent-dancer/:id" element={<AgentDancerDetails />} />
-                 <Route path="/agent-singer/:id" element={<AgentSingerDetails />} />
-                  <Route path="/agent-musician/:id" element={<AgentMusicianDetails />} />
+            <Route path="/agent-dancer/:id" element={<AgentDancerDetails />} />
+            <Route path="/agent-singer/:id" element={<AgentSingerDetails />} />
+            <Route path="/agent-musician/:id" element={<AgentMusicianDetails />} />
           </>
         ) : (
           <>
@@ -162,15 +162,15 @@ function AppContent() {
             <Route path='/shortfilmuploadForm' element={<UploadForm />} />
             <Route path='/agentDashboard' element={<AgentDashboard />} />
             <Route path='/adminDashboard' element={<AdminDashboard />} />
-             <Route path='/agentEditAll' element={<EditAgentAll />} />
-             <Route
-  path="/admin-dashboard"
-  element={
-   <PrivateAdminRoute>
-      <AdminDashboard />
-    </PrivateAdminRoute>
-  }
-/>
+            <Route path='/agentEditAll' element={<EditAgentAll />} />
+            <Route
+              path="/admin-dashboard"
+              element={
+                <PrivateAdminRoute>
+                  <AdminDashboard />
+                </PrivateAdminRoute>
+              }
+            />
 
           </>
         )}
